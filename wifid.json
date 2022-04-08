@@ -1,0 +1,62 @@
+{
+    "metadata": {
+        "codename": "",
+        "OS": "iOS",
+        "versions": [""],
+        "patched_in": "version",
+        "type": "format string",
+        "target": "/usr/sbin/wifid",
+        "idb": "path_to_idb"
+    },
+    "revisions": [
+        {
+            "label": "rev_0",
+            "attributes": [
+                {
+                    "type": "FILE",
+                    "filenames": ["/usr/sbin/wifid"]
+                },
+                {
+                    "type": "FUNCTION",
+                    "identifier": []
+                },
+                {
+                    "type": "EMULATION",
+                    "bb_id_start": 0,
+                    "bb_id_end": 0,
+                    "context": "TODO",
+                    "commands": [
+                        {
+                            "cmd": "get_memreads",
+                            "results": [
+                                {"type": "callback", "elem_id": 0, "action": "write", "arg": "0xdeadbeef"}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "EMULATION",
+                    "bb_id_start": 1,
+                    "bb_id_end": 1,
+                    "context": {},
+                    "commands": [
+                        {
+                            "cmd": "exec_until",
+                            "keypoint": {"type": "branch", "position": 0},
+                            "results": [
+                                {"type": "stack", "offset": 0, "deref": false, "value": "0x00", "operand": "!="},
+                                {"type": "stack", "offset": 8, "deref": false, "value": "0xdeadbeef", "operand": "=="}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "graphs": [
+        {
+            "label": "fct_hello",
+            "graph": "TODO: serialized igraph object"
+        }
+    ]
+}

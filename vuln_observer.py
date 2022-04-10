@@ -31,10 +31,18 @@ class VulnObserver():
         self.r = r2pipe.open(target, self.options)
 
         # TODO: fine tune the analysis depending of the needs for faster load
-        #self.r.cmd('aaa')
-        self.r.cmd('aa; aac') # only function calls
+        self.log('info', 'Analyzing the binary...')
+
+        # TEST: to speed up testing, r2 project feature works \o/
+        if 'wifid' in target:
+            self.r.cmd('Po wifid_14_1')
+        else:
+            self.r.cmd('aaa')
 
         self.r.cmd('e asm.esil=true')
+
+        #self.curr_fct
+        #self.curr_graph
 
     def init_options(self, target):
         """

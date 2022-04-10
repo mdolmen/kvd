@@ -6,8 +6,12 @@ import argparse
 import inspect
 import subprocess
 import json
+import pickle
 
 from colorama import Fore, Style, init as colorama_init
+from tempfile import NamedTemporaryFile
+from igraph import Graph
+from base64 import b64encode, b64decode
 
 ## Get a single basic block as an ESIL string
 #bb_index = 13 # TODO: get basic block containing address (pdb does that!)
@@ -123,8 +127,36 @@ class VulnObserver():
                     bb_ids.append(index)
                 index += 1
 
+            # TODO: handle case not found (r2 analysis failed to interpret as code)
+
         return bb_ids
     
+    def get_graph(self, addr):
+        """
+        Return the GML graph of the function containing 'addr'.
+        """
+        self.r.cmd(f's {addr}')
+
+        # 'agfg' command doesn't have a JSON option for output and the JSON format of the graph is
+        # not as concise as the GML one.
+        tmp = NamedTemporaryFile()
+        self.r.cmd(f'agfg > {tmp.name}')
+        start, _ = self.get_fct_range(addr)
+
+        # Create GML graph from file
+        g = Graph()
+        result = g.Read_GML(tmp.name)
+        tmp.close()
+
+        # Serialize the graph and format for a vuln decription
+        graph = b64encode(pickle.dumps(result)).decode('utf-8')
+        output = json.dumps({'label': f'fct_{hex(start)}', 'graph': graph})
+        self.log('info', f'Serialized graph for function containing {hex(addr)}:')
+        self.log('', output)
+
+    def get_graph_paths(self, g, start, end):
+        return g.get_all_simple_paths(start, to=end)
+
     def check_description(self, desc):
         """
         Check the format correctness of a vuln description file.
@@ -157,11 +189,11 @@ class VulnObserver():
         # TODO: apply 'context'
 
         for cmd in att['commands']:
-            self.handle_obj_cmd(cmd)
+            self.handle_obj_cmd(cmd, graph)
 
         return True
     
-    def handle_obj_cmd(self, obj):
+    def handle_obj_cmd(self, obj, graph):
         if obj['cmd'] == 'get_memreads':
             self.cmd_get_memreads()
         if obj['cmd'] == 'exec_until':
@@ -184,29 +216,46 @@ class VulnObserver():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--bb-ids', nargs='*',
+    parser.add_argument('-b', '--get-bb-ids', nargs='*',
                         help='Get the basic block IDs corresponding to the given addresses')
+    parser.add_argument('-g', '--get-graph', nargs='*',
+                        help='Get the graph representation of a function (GML format)')
+    parser.add_argument('-e', '--extract', nargs='*',
+                        help='Get all info pertaining to the given addresses (BB IDs + graph)')
     parser.add_argument('-s', '--search', type=argparse.FileType('r'),
                         help='JSON file describing a vulnerability to look for')
     parser.add_argument('-c', '--check', type=argparse.FileType('r'),
                         help='Check the correctness of a description file')
+    parser.add_argument('-t', '--target', required=True,
+                        help='Target file in which to search for the given vuln')
     args = parser.parse_args()
 
-    # TODO: arg
-    target = "ls"
-
-    vo = VulnObserver(target)
+    vo = VulnObserver(args.target)
+    #vo.get_graph(0x77AE)
+    #exit(1)
 
     # TEST: run it with: 0x77AE 0x7890
 
-    if args.bb_ids:
-        addresses = [int(a, 16) for a in args.bb_ids]
+    if args.extract:
+        # TODO: get_bb_ids
+        # TODO: get_graph
+        pass
+
+    if args.get_bb_ids:
+        addresses = [int(a, 16) for a in args.get_bb_ids]
         bb_ids = vo.get_bb_ids(addresses)
 
         # TODO: output in json ready to be copy/pasted in a description file
-        for i in range(len(args.bb_ids)):
+        for i in range(len(args.get_bb_ids)):
             print(f"Basic block ID of {hex(addresses[i])}: {bb_ids[i]}")
         exit(0)
+
+    if args.get_graph:
+        addresses = [int(a, 16) for a in args.get_graph]
+        graphs = []
+
+        for addr in addresses:
+            graphs.append(vo.get_graph(addr))
 
     if args.check:
         desc = json.load(desc_file)

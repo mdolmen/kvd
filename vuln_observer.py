@@ -54,24 +54,29 @@ class VulnObserver():
         bin_info = json.loads(bin_info)
         bin_info = bin_info['info']
 
-        # Applies to ELF only, TODO: check that first
-        if bin_info['relro'] == 'full':
-            options += ['-e', 'bin.cache=true']
+        if bin_info['bintype'] == 'mach0':
+            pass
 
         # TODO: check if dyldcache
+
+        elif bin_info['bintype'] == 'elf':
+            if bin_info['relro'] == 'full':
+                options += ['-e', 'bin.cache=true']
 
         return options
 
     def log(self, type, msg):
         if type == 'error':
-            print(f'{Fore.RED}[-] {inspect.stack()[1].function}: {msg}{Style.RESET_ALL}')
+            print(f'{Fore.RED}[-] {inspect.stack()[1].function}{Style.RESET_ALL}: {msg}')
             exit(1)
         elif type == 'success':
-            print(f'{Fore.GREEN}[+] {msg}{Style.RESET_ALL}')
+            print(f'{Fore.GREEN}[+]{Style.RESET_ALL} {msg}')
         elif type == 'info':
-            print(f'{Fore.YELLOW}[INFO] {msg}{Style.RESET_ALL}')
+            print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
         elif type == 'debug':
-            print(f'{Fore.MAGENTA}[DEBUG] {msg}{Style.RESET_ALL}')
+            print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {msg}')
+        else:
+            print(f'{msg}')
 
     def get_calls(self, pc, esil):
         """
@@ -104,6 +109,8 @@ class VulnObserver():
         """
         Get basic block IDs containing each address.
         """
+        self.log('info', f'Searching basic block IDs for {addresses}...')
+
         bb_ids = []
 
         for addr in addresses:

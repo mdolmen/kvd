@@ -1,0 +1,8 @@
+r2pipe
+re
+argparse
+inspect
+subprocess
+json
+igraph
+colorama

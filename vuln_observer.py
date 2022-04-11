@@ -27,6 +27,38 @@ from base64 import b64encode, b64decode
 #esil = "".join(inst["esil"] for inst in disas)
 #esil = "0x58,rbp,+,[8],rdi,=0x1488b,rip,+,[8],r8,=rsp,rsi,=512,rcx,=0x14885,rip,+,[4],rdx,=52528,rip,8,rsp,-=,rsp,=[],rip,=rax,rdi,=18592,rip,8,rsp,-=,rsp,=[],rip,=1,rax,+=,63,$o,of,:=,63,$s,sf,:=,$z,zf,:=,63,$c,cf,:=,$p,pf,:=0xd972,rip,="
 
+class Utils():
+    @staticmethod
+    def log(type, msg):
+        if type == 'error':
+            print(f'{Fore.RED}[!] {inspect.stack()[1].function}{Style.RESET_ALL}: {msg}')
+            exit(1)
+        elif type == 'fail':
+            print(f'{Fore.RED}[-]{Style.RESET_ALL} {msg}')
+        elif type == 'success':
+            print(f'{Fore.GREEN}[+]{Style.RESET_ALL} {msg}')
+        elif type == 'info':
+            print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
+        elif type == 'debug':
+            print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {msg}')
+        else:
+            print(f'{msg}')
+
+    @staticmethod
+    def present_in_both(a, b):
+        """
+        Returns a list of elements present in both list.
+        """
+        result = []
+
+        if len(a) or len(b) == 0:
+            return result
+
+        result = [result.append(elem) for elem in b if elem in a]
+
+        return result
+
+
 class VulnObserver():
     def __init__(self, target):
         colorama_init()
@@ -35,12 +67,14 @@ class VulnObserver():
         self.r = r2pipe.open(target, self.options)
 
         # TODO: fine tune the analysis depending of the needs for faster load
-        self.log('info', 'Analyzing the binary...')
+        #Utils.log('info', 'Analyzing the binary...')
 
         # TEST: to speed up testing, r2 project feature works \o/
         if 'wifid' in target:
+            Utils.log('info', 'Opening project...')
             self.r.cmd('Po wifid_14_1')
         else:
+            Utils.log('info', 'Analyzing the binary...')
             self.r.cmd('aaa')
 
         self.r.cmd('e asm.esil=true')
@@ -69,19 +103,6 @@ class VulnObserver():
 
         return options
 
-    def log(self, type, msg):
-        if type == 'error':
-            print(f'{Fore.RED}[-] {inspect.stack()[1].function}{Style.RESET_ALL}: {msg}')
-            exit(1)
-        elif type == 'success':
-            print(f'{Fore.GREEN}[+]{Style.RESET_ALL} {msg}')
-        elif type == 'info':
-            print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
-        elif type == 'debug':
-            print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {msg}')
-        else:
-            print(f'{msg}')
-
     def get_calls(self, pc, esil):
         """
         Args:
@@ -100,7 +121,7 @@ class VulnObserver():
         info = self.r.cmdj('afij')
 
         if len(info) == 0:
-            self.log('error', f'no function found containing {hex(addr)}')
+            Utils.log('error', f'no function found containing {hex(addr)}')
         
         return (info[0]['offset'], info[0]['offset']+info[0]['size'])
 
@@ -113,7 +134,7 @@ class VulnObserver():
         """
         Get basic block IDs containing each address.
         """
-        self.log('info', f'Searching basic block IDs for {addresses}...')
+        Utils.log('info', f'Searching basic block IDs for {addresses}...')
 
         bb_ids = []
 
@@ -151,8 +172,8 @@ class VulnObserver():
         # Serialize the graph and format for a vuln decription
         graph = b64encode(pickle.dumps(result)).decode('utf-8')
         output = json.dumps({'label': f'fct_{hex(start)}', 'graph': graph})
-        self.log('info', f'Serialized graph for function containing {hex(addr)}:')
-        self.log('', output)
+        Utils.log('info', f'Serialized graph for function containing {hex(addr)}:')
+        Utils.log('', output)
 
     def get_graph_paths(self, g, start, end):
         return g.get_all_simple_paths(start, to=end)
@@ -164,24 +185,52 @@ class VulnObserver():
         assert len(desc['metadata']) != 0, "Vuln description error: empty metadata"
         assert len(desc['revisions']) != 0, "Vuln description error: empty revisions, nothing to look for"
         # TODO: ...
-        self.log('success', 'Description OK')
+        Utils.log('success', 'Description OK')
 
     def handle_attribute(self, att):
         """
         Handle an attribute from the vuln that should be present in the target we test.
         """
         if att['type'] == 'FILE':
-            self.handle_att_file()
+            #self.handle_att_file()
+            pass
         elif att['type'] == 'FUNCTION':
-            self.handle_att_function()
+            self.handle_att_function(att['identifiers'])
         elif att['type'] == 'EMULATION':
-            self.handle_att_emulation(att)
+            #self.handle_att_emulation(att)
+            pass
 
     def handle_att_file(self):
         return True
 
-    def handle_att_function(self):
-        return True
+    # TODO: start by handling this one
+    def handle_att_function(self, identifiers):
+        """
+        Look for the function matching the constraints described in 'identifiers'.
+        Return the start address of all the functions matching.
+        """
+        # Potential function matching the constraints
+        candidates = []
+        found = True
+
+        for id in identifiers:
+            if id['type'] == 'symbol':
+                pass
+            elif id['type'] == 'string':
+                candidates = self.handle_obj_id_string(id, candidates)
+            elif id['type'] == 'bb_graph':
+                pass
+
+            if len(candidates) == 0:
+                found = False
+                Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["value"]}\": no function matching previous constraints')
+                break
+
+        if found:
+            Utils.log('success', f'Found a matching function: {hex(candidates[0])}')
+            # TODO: handle multiple function still matches
+
+        return candidates
 
     def handle_att_emulation(self, att):
         # TODO: get graph path from bb_id_start to bb_id_end
@@ -198,6 +247,28 @@ class VulnObserver():
             self.cmd_get_memreads()
         if obj['cmd'] == 'exec_until':
             self.cmd_exec_until()
+
+    def handle_obj_id_string(self, obj, candidates):
+        result = self.r.cmd(f'iz~{obj["value"]}')
+
+        if result:
+            addr = result.split(' ')[2]
+
+            # Get xrefs to the string
+            xrefs = self.r.cmdj(f'axtj {addr}')
+
+            new_candidates = [ref['fcn_addr'] for ref in xrefs]
+            if len(candidates) == 0:
+                # No other result yet, it's the first constraint being tested.
+                return new_candidates
+
+            # If one of the new candidates is not already in the existing candidate list
+            # it means it doesn't match previous criterias so we can remove it.
+            candidates = Utils.present_in_both(candidates, new_candidates)
+
+            Utils.log('debug', f'handle_obj_id_string: {candidates}')
+
+        return candidates
 
     def cmd_get_memreads(self):
         pass

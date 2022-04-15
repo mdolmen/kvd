@@ -79,6 +79,9 @@ class VulnObserver():
             Utils.log('info', 'Analyzing the binary...')
             self.r.cmd('aaa')
 
+        # Init ESIL
+        self.r.cmd('aei')
+        sefl.r.cmd('aeim')
         self.r.cmd('e asm.esil=true')
 
         #self.curr_fct
@@ -119,8 +122,7 @@ class VulnObserver():
         """
         Return start and end address of the function containing addr.
         """
-        self.r.cmd(f's {addr}')
-        info = self.r.cmdj('afij')
+        info = self.r.cmdj(f'afij @ {addr}')
 
         if len(info) == 0:
             Utils.log('error', f'no function found containing {hex(addr)}')
@@ -128,8 +130,7 @@ class VulnObserver():
         return (info[0]['offset'], info[0]['offset']+info[0]['size'])
 
     def get_bbs(self, addr):
-        self.r.cmd(f's {addr}')
-        basic_blocks = self.r.cmdj('afbj')
+        basic_blocks = self.r.cmdj(f'afbj @ {addr}')
         return basic_blocks
 
     def get_bb_ids(self, addresses):
@@ -153,17 +154,18 @@ class VulnObserver():
             # TODO: handle case not found (r2 analysis failed to interpret as code)
 
         return bb_ids
+
+    def get_memreads(self):
+        pass
     
-    def get_graph(self, addr):
+    def get_graph(self, addr, show=False):
         """
         Return the GML graph of the function containing 'addr'.
         """
-        self.r.cmd(f's {addr}')
-
         # 'agfg' command doesn't have a JSON option for output and the JSON format of the graph is
         # not as concise as the GML one.
         tmp = NamedTemporaryFile()
-        self.r.cmd(f'agfg > {tmp.name}')
+        self.r.cmd(f'agfg @ {addr} > {tmp.name}')
         start, _ = self.get_fct_range(addr)
 
         # Create GML graph from file

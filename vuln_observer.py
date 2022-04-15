@@ -221,15 +221,13 @@ class VulnObserver():
             #self.handle_att_file()
             pass
         elif att['type'] == 'FUNCTION':
-            self.handle_att_function(att['identifiers'])
+            self.fct_candidates = self.handle_att_function(att['identifiers'])
         elif att['type'] == 'EMULATION':
-            #self.handle_att_emulation(att)
-            pass
+            self.handle_att_emulation(att)
 
     def handle_att_file(self):
         return True
 
-    # TODO: start by handling this one
     def handle_att_function(self, identifiers):
         """
         Look for the function matching the constraints described in 'identifiers'.
@@ -243,13 +241,13 @@ class VulnObserver():
             if id['type'] == 'symbol':
                 pass
             elif id['type'] == 'string':
-                candidates = self.handle_obj_id_string(id, candidates)
+                candidates = self.handle_id_string(id, candidates)
             elif id['type'] == 'bb_graph':
                 pass
 
             if len(candidates) == 0:
                 found = False
-                Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["value"]}\": no function matching previous constraints')
+                Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["value"]}\": no function matching all the constraints')
                 break
 
         if found:
@@ -259,22 +257,52 @@ class VulnObserver():
         return candidates
 
     def handle_att_emulation(self, att):
-        # TODO: get graph path from bb_id_start to bb_id_end
+        if self.fct_candidates == []:
+            Utils.log('error', f'No function on which to apply EMULATION...')
+
+        # TODO: get graph path
+
+        # TODO: check that the new graph is equivalent
+        # TODO: a 'strict' mode
+        #   -> if graph differs stop there and go check for the vuln manually
+        #   -> a more permissive option which tries anyway, if it's a big function, maybe the
+        #      changes doesn't affect our path and BB ids are the same
 
         # TODO: apply 'context'
 
-        for cmd in att['commands']:
-            self.handle_obj_cmd(cmd, graph)
+        for fct in self.fct_candidates:
+            graph_ref = self.get_graph_from_desc(att['bb_graph_label'])
+
+            for cmd in att['commands']:
+                if cmd['cmd'] == 'get_memreads':
+                    self.handle_cmd_get_memreads(cmd['cmd'], att['bb_graph_path'], graph_ref, fct)
+                if cmd['cmd'] == 'exec_until':
+                    #self.handle_cmd_exec_until()
+                    pass
 
         return True
     
-    def handle_obj_cmd(self, obj, graph):
-        if obj['cmd'] == 'get_memreads':
-            self.cmd_get_memreads()
-        if obj['cmd'] == 'exec_until':
-            self.cmd_exec_until()
+    def handle_cmd_get_memreads(self, obj, graph_path, graph_ref, fct):
+        for addr in self.fct_candidates:
+            graph = self.get_graph(addr)
 
-    def handle_obj_id_string(self, obj, candidates):
+            # TODO: check graphes match
+            #Utils.log('debug', graph)
+            #Utils.log('debug', '')
+            #Utils.log('debug', graph_ref)
+            #Utils.log('debug', graph.average_path_length())
+            #Utils.log('debug', graph_ref.average_path_length())
+
+            # TODO: get memreads (esil command)
+
+            # TODO: apply 'results' (callback or comparison)
+
+        return True
+
+    def handle_cmd_exec_until(self, obj, graph):
+        pass
+
+    def handle_id_string(self, obj, candidates):
         result = self.r.cmd(f'iz~{obj["value"]}')
 
         if result:

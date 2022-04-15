@@ -149,7 +149,7 @@ class VulnObserver():
 
             index = 0
             for bb in bbs:
-                if addr >= bb['addr'] and addr <= bb['addr']+bb['size']:
+                if addr >= bb['addr'] and addr < bb['addr']+bb['size']:
                     bb_ids.append(index)
                 index += 1
 

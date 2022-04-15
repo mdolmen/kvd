@@ -55,6 +55,7 @@ class VulnObserver():
 
         self.desc = None
         self.fct_candidates = []
+        self.pc = 'pc'
         self.options = self.init_options(target)
         self.r = r2pipe.open(target, self.options)
 
@@ -87,6 +88,11 @@ class VulnObserver():
         bin_info = json.loads(bin_info)
         bin_info = bin_info['info']
 
+        if bin_info['arch'] == 'arm':
+            self.pc == 'pc'
+        elif bin_info['arch'] == 'x86':
+            self.pc == 'rip'
+
         if bin_info['bintype'] == 'mach0':
             pass
 
@@ -98,19 +104,41 @@ class VulnObserver():
 
         return options
 
-    def get_calls(self, pc, esil):
+    def esil_get_nb_branches(self, estr):
         """
-        Args:
-            pc   : The register name for PC
-            esil : The ESIL string in which to search for
+        Returns the number of times PC gets changed (branch, jmp, call).
 
-        Returns: The indexes at which PC gets changed (branch, jmp, call).
+        estr : The ESIL string in which to search for
         """
-        return [m.start() for m in re.finditer(f"{pc},=", esil)]
+        calls = [m.start() for m in re.finditer(f'{self.pc},=', estr)]
+        return len(calls)
+
+    def esil_emulate(self, start, kp, until):
+        """
+        Emulate from 'start' to 'kp' as many times as indicated by 'until'.
+
+        start   : addr at which to start the emulation
+        kp      : an ESIL expression (i.e. 'pc,=' for a branch)
+        until   : the occurenc of 'kp' at which to stop
+
+        Returns a JSON object representing the register state.
+        """
+        # Reset ESIL state
+        self.r.cmd('aei-')
+
+        # Init ESIL state
+        self.r.cmd('aei')
+        self.r.cmd(f's {start}')
+        self.r.cmd(f'aeip')
+
+        for i in range(until+1):
+            self.r.cmd(f'aesou {kp}')
+
+        return self.r.cmdj('aerj')
 
     def get_fct_range(self, addr):
         """
-        Return start and end address of the function containing addr.
+        Returns start and end address of the function containing addr.
         """
         info = self.r.cmdj(f'afij @ {addr}')
 
@@ -118,6 +146,15 @@ class VulnObserver():
             Utils.log('error', f'no function found containing {hex(addr)}')
         
         return (info[0]['offset'], info[0]['offset']+info[0]['size'])
+
+    def get_disas(self, addr, size):
+        """
+        Returns a JSON object representing the disasembly for the given range.
+
+        addr: start address
+        size: number of bytes to disassemble
+        """
+        return self.r.cmdj(f'pDj {size} @ {addr}')
 
     def get_bbs(self, addr):
         """
@@ -146,6 +183,16 @@ class VulnObserver():
             # TODO: handle case not found (r2 analysis failed to interpret as code)
 
         return bb_ids
+
+    def get_bb_to_esil_str(self, bb):
+        """
+        Returns the ESIL string of all the instructions in the given bascic block.
+        """
+        Utils.log('debug', hex(bb['addr']))
+        Utils.log('debug', hex(bb['size']))
+        disas = self.get_disas(bb['addr'], bb['size'])
+        estr = "".join(inst["esil"] for inst in disas)
+        return estr
 
     def get_memreads(self, addr):
         """
@@ -195,7 +242,9 @@ class VulnObserver():
                 break
 
         if data == {}:
-            Utils.log('error', f'Graph \"{label}\" was not found')
+            Utils.log('fail', f'Graph \"{label}\" was not found')
+            # DEBUG
+            return
 
         graph = pickle.loads(b64decode(data['graph']))
 
@@ -260,7 +309,7 @@ class VulnObserver():
         # TODO: get graph path
 
         # TODO: check that the new graph is equivalent
-        # TODO: a 'strict' mode
+        # TODO: a 'strict' mode?
         #   -> if graph differs stop there and go check for the vuln manually
         #   -> a more permissive option which tries anyway, if it's a big function, maybe the
         #      changes doesn't affect our path and BB ids are the same
@@ -270,19 +319,20 @@ class VulnObserver():
         for fct in self.fct_candidates:
             graph_ref = self.get_graph_from_desc(att['bb_graph_label'])
 
+            # TODO: check_graphs() here
+
             for cmd in att['commands']:
                 if cmd['cmd'] == 'get_memreads':
                     self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], graph_ref, fct)
                 if cmd['cmd'] == 'exec_until':
-                    #self.handle_cmd_exec_until()
-                    pass
+                    self.handle_cmd_exec_until(cmd, att['bb_graph_path'], graph_ref, fct)
 
         return True
     
     def handle_cmd_get_memreads(self, obj_cmd, graph_path, graph_ref, addr):
         graph = self.get_graph(addr)
 
-        # TODO: check graphs match
+        # TODO: check graphs match (function)
         #Utils.log('debug', graph)
         #Utils.log('debug', '')
         #Utils.log('debug', graph_ref)
@@ -302,13 +352,32 @@ class VulnObserver():
         return True
 
     def handle_cmd_exec_until(self, obj_cmd, graph_path, graph_ref, addr):
-        # TODO: get esil string of the bbs
+        bbs = self.get_bbs(addr)
+        kp_type = obj_cmd['keypoints']['type']
+        kp_expected = obj_cmd['keypoints']['expected']
+        kp_stop_at = obj_cmd['keypoints']['position']
 
-        # TODO: interpret the string: look for 'keypoints'
+        # TODO: get the id in graph_path right
+        estr = ""
+        for id in graph_path:
+            estr += self.get_bb_to_esil_str(bbs[id])
 
-        # TODO: emulate until 'keypoint'
+        # Check number of keypoints is as expected
+        keypoint = ''
+        nb_keypoints = 0
+        if kp_type == 'branch':
+            keypoint = f'{self.pc},='
+            nb_keypoints = self.esil_get_nb_branches(estr)
+        #elif kp_type == 'TODO: implement more kp':
+        #    pass
 
-        # TODO: handle results
+        if nb_keypoints != kp_expected:
+            Utils.log('error',
+                      f'Number of "{kp_type}" ({nb_keypoints}) differs from what was expected ({kp_expected})!')
+
+        regs = self.esil_emulate(addr, keypoint, kp_stop_at)
+
+        self.handle_cmd_results(obj_cmd['results'], regs)
 
         return True
 
@@ -317,6 +386,7 @@ class VulnObserver():
             if result['type'] == 'reg':
                 pass
             elif result['type'] == 'stack':
+                # TODO: next
                 pass
             elif result['type'] == 'mem':
                 pass

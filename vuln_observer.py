@@ -13,19 +13,9 @@ from tempfile import NamedTemporaryFile
 from igraph import Graph
 from base64 import b64encode, b64decode
 
-## Get a single basic block as an ESIL string
-#bb_index = 13 # TODO: get basic block containing address (pdb does that!)
-#basic_blocks = r.cmdj("afbj")
-#bb = basic_blocks[bb_index]
-#
-#print(bb['addr'])
-#print(bb['size'])
-#print(f"addr = {bb['addr']}")
-#r.cmd(f"s {bb['addr']}")
-#disas = r.cmdj(f"pDj {bb['size']}")
-
-#esil = "".join(inst["esil"] for inst in disas)
-#esil = "0x58,rbp,+,[8],rdi,=0x1488b,rip,+,[8],r8,=rsp,rsi,=512,rcx,=0x14885,rip,+,[4],rdx,=52528,rip,8,rsp,-=,rsp,=[],rip,=rax,rdi,=18592,rip,8,rsp,-=,rsp,=[],rip,=1,rax,+=,63,$o,of,:=,63,$s,sf,:=,$z,zf,:=,63,$c,cf,:=,$p,pf,:=0xd972,rip,="
+"""
+ESIL doc: https://book.rada.re/disassembling/esil.html
+"""
 
 class Utils():
     @staticmethod
@@ -40,7 +30,7 @@ class Utils():
         elif type == 'info':
             print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
         elif type == 'debug':
-            print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {msg}')
+            print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {inspect.stack()[1].function}: {msg}')
         else:
             print(f'{msg}')
 

@@ -63,6 +63,8 @@ class VulnObserver():
     def __init__(self, target):
         colorama_init()
 
+        self.desc = None
+        self.fct_candidates = []
         self.options = self.init_options(target)
         self.r = r2pipe.open(target, self.options)
 
@@ -172,11 +174,33 @@ class VulnObserver():
         # Serialize the graph and format for a vuln decription
         graph = b64encode(pickle.dumps(result)).decode('utf-8')
         output = json.dumps({'label': f'fct_{hex(start)}', 'graph': graph})
-        Utils.log('info', f'Serialized graph for function containing {hex(addr)}:')
-        Utils.log('', output)
+        if show:
+            Utils.log('info', f'Serialized graph for function containing {hex(addr)}:')
+            Utils.log('', output)
+
+        return result
 
     def get_graph_paths(self, g, start, end):
         return g.get_all_simple_paths(start, to=end)
+
+    def get_graph_from_desc(self, label):
+        """
+        Get the data related to graph "label" from the desc, decode, deserialize and return a graph
+        object from it.
+        """
+        data = {}
+
+        for g in self.desc['graphs']:
+            if g['label'] == label:
+                data = g
+                break
+
+        if data == {}:
+            Utils.log('error', f'Graph \"{label}\" was not found')
+
+        graph = pickle.loads(b64decode(data['graph']))
+
+        return graph
 
     def check_description(self, desc):
         """
@@ -266,21 +290,22 @@ class VulnObserver():
             # it means it doesn't match previous criterias so we can remove it.
             candidates = Utils.present_in_both(candidates, new_candidates)
 
-            Utils.log('debug', f'handle_obj_id_string: {candidates}')
+            Utils.log('debug', f'handle_id_string: {candidates}')
 
         return candidates
 
     def cmd_get_memreads(self):
-        pass
+        reg_mem_accesses = self.r.cmd(f'aeabj @ {addr}')
+        return reg_mem_accesses['@R']
 
     def cmd_exec_until(self):
         pass
     
     def search_vuln(self, desc_file):
-        desc = json.load(desc_file)
-        self.check_description(desc)
+        self.desc = json.load(desc_file)
+        self.check_description(self.desc)
 
-        for rev in desc['revisions']:
+        for rev in self.desc['revisions']:
             for att in rev['attributes']:
                 self.handle_attribute(att)
             # TODO: print conclusion for revision, 'found' or 'maybe patched'
@@ -303,6 +328,8 @@ if __name__ == '__main__':
 
     vo = VulnObserver(args.target)
     #vo.get_graph(0x77AE)
+    #vo.desc = json.load(args.search)
+    #vo.get_graph_from_desc("fct_0x1000f4ef8")
     #exit(1)
 
     # TEST: run it with: 0x77AE 0x7890
@@ -326,10 +353,10 @@ if __name__ == '__main__':
         graphs = []
 
         for addr in addresses:
-            graphs.append(vo.get_graph(addr))
+            graphs.append(vo.get_graph(addr), show=True)
 
     if args.check:
-        desc = json.load(desc_file)
+        self.desc = json.load(desc_file)
         vo.check_description()
 
     if args.search:

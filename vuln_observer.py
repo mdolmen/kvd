@@ -17,6 +17,8 @@ from base64 import b64encode, b64decode
 ESIL doc: https://book.rada.re/disassembling/esil.html
 """
 
+DEBUG = True
+
 class Utils():
     @staticmethod
     def log(type, msg):
@@ -30,6 +32,8 @@ class Utils():
         elif type == 'info':
             print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
         elif type == 'debug':
+            if not DEBUG:
+                return
             print(f'{Fore.MAGENTA}[DEBUG]{Style.RESET_ALL} {inspect.stack()[1].function}: {msg}')
         else:
             print(f'{msg}')

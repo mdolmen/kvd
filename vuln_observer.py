@@ -289,7 +289,7 @@ class VulnObserver():
 
         return True
     
-    def handle_cmd_get_memreads(self, obj, graph_path, graph_ref, addr):
+    def handle_cmd_get_memreads(self, obj_cmd, graph_path, graph_ref, addr):
         graph = self.get_graph(addr)
 
         # TODO: check graphs match
@@ -307,7 +307,23 @@ class VulnObserver():
             memreads += self.get_memreads(bbs[id]['addr'])
         Utils.log('debug', memreads)
 
-        for result in obj['results']:
+        self.handle_cmd_results(obj_cmd['results'], memreads)
+
+        return True
+
+    def handle_cmd_exec_until(self, obj_cmd, graph_path, graph_ref, addr):
+        # TODO: get esil string of the bbs
+
+        # TODO: interpret the string: look for 'keypoints'
+
+        # TODO: emulate until 'keypoint'
+
+        # TODO: handle results
+
+        return True
+
+    def handle_cmd_results(self, obj_results, data_in):
+        for result in obj_results:
             if result['type'] == 'reg':
                 pass
             elif result['type'] == 'stack':
@@ -316,17 +332,12 @@ class VulnObserver():
                 pass
             elif result['type'] == 'callback':
                 if result['action'] == 'write':
-                    self.r.cmd(f'w {result["arg"]} @ {memreads[result["elem_id"]]}')
-                    test = self.r.cmd(f'px 8 @ {memreads[result["elem_id"]]}')
+                    self.r.cmd(f'w {result["value"]} @ {data_in[result["elem_id"]]}')
+                    test = self.r.cmd(f'px 8 @ {data_in[result["elem_id"]]}')
                     Utils.log('debug', test)
 
-        return True
-
-    def handle_cmd_exec_until():
-        pass
-
-    def handle_id_string(self, obj, candidates):
-        result = self.r.cmd(f'iz~{obj["value"]}')
+    def handle_id_string(self, obj_string, candidates):
+        result = self.r.cmd(f'iz~{obj_string["value"]}')
 
         if result:
             addr = result.split(' ')[2]

@@ -81,7 +81,7 @@ class VulnObserver():
 
         # Init ESIL
         self.r.cmd('aei')
-        sefl.r.cmd('aeim')
+        self.r.cmd('aeim')
         self.r.cmd('e asm.esil=true')
 
         #self.curr_fct
@@ -130,8 +130,10 @@ class VulnObserver():
         return (info[0]['offset'], info[0]['offset']+info[0]['size'])
 
     def get_bbs(self, addr):
-        basic_blocks = self.r.cmdj(f'afbj @ {addr}')
-        return basic_blocks
+        """
+        Returns the basic blocks of the function containing 'addr'.
+        """
+        return self.r.cmdj(f'afbj @ {addr}')
 
     def get_bb_ids(self, addresses):
         """

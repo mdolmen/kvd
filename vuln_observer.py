@@ -157,8 +157,13 @@ class VulnObserver():
 
         return bb_ids
 
-    def get_memreads(self):
-        pass
+    def get_memreads(self, addr):
+        """
+        Returns the memory reads done at the basic block containing 'addr'.
+        """
+        reg_mem_accesses = self.r.cmdj(f'aeabj @ {addr}')
+        Utils.log('debug', reg_mem_accesses)
+        return reg_mem_accesses['@R']
     
     def get_graph(self, addr, show=False):
         """
@@ -277,31 +282,47 @@ class VulnObserver():
 
             for cmd in att['commands']:
                 if cmd['cmd'] == 'get_memreads':
-                    self.handle_cmd_get_memreads(cmd['cmd'], att['bb_graph_path'], graph_ref, fct)
+                    self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], graph_ref, fct)
                 if cmd['cmd'] == 'exec_until':
                     #self.handle_cmd_exec_until()
                     pass
 
         return True
     
-    def handle_cmd_get_memreads(self, obj, graph_path, graph_ref, fct):
-        for addr in self.fct_candidates:
-            graph = self.get_graph(addr)
+    def handle_cmd_get_memreads(self, obj, graph_path, graph_ref, addr):
+        graph = self.get_graph(addr)
 
-            # TODO: check graphes match
-            #Utils.log('debug', graph)
-            #Utils.log('debug', '')
-            #Utils.log('debug', graph_ref)
-            #Utils.log('debug', graph.average_path_length())
-            #Utils.log('debug', graph_ref.average_path_length())
+        # TODO: check graphs match
+        #Utils.log('debug', graph)
+        #Utils.log('debug', '')
+        #Utils.log('debug', graph_ref)
+        #Utils.log('debug', graph.average_path_length())
+        #Utils.log('debug', graph_ref.average_path_length())
 
-            # TODO: get memreads (esil command)
+        memreads = []
+        bbs = self.get_bbs(addr)
 
-            # TODO: apply 'results' (callback or comparison)
+        # TODO: get the id in grpah_path right
+        for id in graph_path:
+            memreads += self.get_memreads(bbs[id]['addr'])
+        Utils.log('debug', memreads)
+
+        for result in obj['results']:
+            if result['type'] == 'reg':
+                pass
+            elif result['type'] == 'stack':
+                pass
+            elif result['type'] == 'mem':
+                pass
+            elif result['type'] == 'callback':
+                if result['action'] == 'write':
+                    self.r.cmd(f'w {result["arg"]} @ {memreads[result["elem_id"]]}')
+                    test = self.r.cmd(f'px 8 @ {memreads[result["elem_id"]]}')
+                    Utils.log('debug', test)
 
         return True
 
-    def handle_cmd_exec_until(self, obj, graph):
+    def handle_cmd_exec_until():
         pass
 
     def handle_id_string(self, obj, candidates):
@@ -325,13 +346,6 @@ class VulnObserver():
             Utils.log('debug', f'handle_id_string: {candidates}')
 
         return candidates
-
-    def cmd_get_memreads(self):
-        reg_mem_accesses = self.r.cmd(f'aeabj @ {addr}')
-        return reg_mem_accesses['@R']
-
-    def cmd_exec_until(self):
-        pass
     
     def search_vuln(self, desc_file):
         self.desc = json.load(desc_file)

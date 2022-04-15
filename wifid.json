@@ -28,31 +28,29 @@
                 {
                     "type": "EMULATION",
                     "bb_graph_label": "fct_0x1000f4ef8",
-                    "bb_id_start": 48,
-                    "bb_id_end": 48,
-                    "bb_graph_path": [],
+                    "bb_graph_path": [49],
                     "context": "TODO",
                     "commands": [
                         {
                             "cmd": "get_memreads",
                             "results": [
-                                {"type": "callback", "elem_id": 0, "action": "write", "arg": "0xdeadbeef"}
+                                {"type": "callback", "elem_id": 0, "action": "write", "value": "deadbeef"}
                             ]
                         }
                     ]
                 },
                 {
                     "type": "EMULATION",
-                    "bb_id_start": 49,
-                    "bb_id_end": 49,
+                    "bb_graph_label": "CHANGEME",
+                    "bb_graph_path": [51],
                     "context": "TODO",
                     "commands": [
                         {
                             "cmd": "exec_until",
-                            "keypoint": {"type": "branch", "position": 0},
+                            "keypoints": {"type": "branch", "expected": 4, "position": 0},
                             "results": [
-                                {"type": "stack", "offset": 0, "deref": false, "value": "0x00", "operand": "!="},
-                                {"type": "stack", "offset": 8, "deref": false, "value": "0xdeadbeef", "operand": "=="}
+                                {"type": "stack", "offset": 0, "deref": false, "value": "00", "operand": "!="},
+                                {"type": "stack", "offset": 8, "deref": false, "value": "deadbeef", "operand": "=="}
                             ]
                         }
                     ]

@@ -60,6 +60,7 @@ class VulnObserver():
         self.desc = None
         self.fct_candidates = []
         self.pc = 'pc'
+        self.sp = 'sp'
         self.options = self.init_options(target)
         self.r = r2pipe.open(target, self.options)
 
@@ -93,9 +94,10 @@ class VulnObserver():
         bin_info = bin_info['info']
 
         if bin_info['arch'] == 'arm':
-            self.pc == 'pc'
+            pass
         elif bin_info['arch'] == 'x86':
             self.pc == 'rip'
+            self.sp == 'rsp'
 
         if bin_info['bintype'] == 'mach0':
             pass
@@ -249,6 +251,9 @@ class VulnObserver():
 
         return graph
 
+    def read_at(self, addr, length):
+        return bytes(self.r.cmdj(f'pxj {length} @ {addr}'))
+
     def check_description(self, desc):
         """
         Check the format correctness of a vuln description file.
@@ -374,26 +379,53 @@ class VulnObserver():
             Utils.log('error',
                       f'Number of "{kp_type}" ({nb_keypoints}) differs from what was expected ({kp_expected})!')
 
-        regs = self.esil_emulate(addr, keypoint, kp_stop_at)
+        regs = self.esil_emulate(bbs[graph_path[0]]['addr'], keypoint, kp_stop_at)
+        Utils.log('debug', f'{hex(regs["pc"])}')
 
-        self.handle_cmd_results(obj_cmd['results'], regs)
-
-        return True
+        return self.handle_cmd_results(obj_cmd['results'], regs)
 
     def handle_cmd_results(self, obj_results, data_in):
-        for result in obj_results:
-            if result['type'] == 'reg':
-                pass
-            elif result['type'] == 'stack':
-                # TODO: next
-                pass
-            elif result['type'] == 'mem':
-                pass
-            elif result['type'] == 'callback':
-                if result['action'] == 'write':
-                    self.r.cmd(f'w {result["value"]} @ {data_in[result["elem_id"]]}')
-                    test = self.r.cmd(f'px 8 @ {data_in[result["elem_id"]]}')
-                    Utils.log('debug', test)
+        check = True
+
+        while check:
+            for result in obj_results:
+                if result['type'] == 'reg':
+                    pass
+
+                elif result['type'] == 'stack':
+                    sp = data_in[self.sp]
+                    if result['operand'] not in ['==', '!=', '<', '>', '<=', '>=']:
+                        Utils.log('error', 'Nope, not doing that.')
+                    if result['deref']:
+                        addr = sp + result['offset']
+                        expected = bytes.fromhex(result['value'])
+                        length = len(expected)
+                        data = self.read_at(addr, length)
+                        Utils.log('debug', f'addr = {hex(addr)}, data = {data}')
+                        check = eval(f'{data} {result["operand"]} {expected}')
+                    else:
+                        expected = bytes.fromhex(result['value'])
+                        data = sp + result['offset']
+                        operand = result["operand"]
+                        Utils.log('debug', f'data = {data}, operand = {operand}, expected = {expected}')
+                        check = eval(f'{data} {operand} {expected}')
+
+                elif result['type'] == 'mem':
+                    pass
+
+                elif result['type'] == 'callback':
+                    if result['action'] == 'write':
+                        dest = data_in[result["elem_id"]]
+                        data = result["value"]
+                        Utils.log('debug', f'Writing {data} at {hex(dest)}')
+                        self.r.cmd(f'wx {data} @ {dest}')
+
+                        # TODO: put in a testfile
+                        test = self.r.cmdj(f'pxj 8 @ {data_in[result["elem_id"]]}')
+                        Utils.log('debug', bytes(test))
+            break
+
+        return check
 
     def handle_id_string(self, obj_string, candidates):
         result = self.r.cmd(f'iz~{obj_string["value"]}')

@@ -267,13 +267,17 @@ class VulnObserver():
         """
         Handle an attribute from the vuln that should be present in the target we test.
         """
+        check = True
+
         if att['type'] == 'FILE':
             #self.handle_att_file()
             pass
         elif att['type'] == 'FUNCTION':
-            self.fct_candidates = self.handle_att_function(att['identifiers'])
+            check = self.fct_candidates = self.handle_att_function(att['identifiers'])
         elif att['type'] == 'EMULATION':
-            self.handle_att_emulation(att)
+            check = self.handle_att_emulation(att)
+
+        return check
 
     def handle_att_file(self):
         return True
@@ -307,6 +311,8 @@ class VulnObserver():
         return candidates
 
     def handle_att_emulation(self, att):
+        check = True
+
         if self.fct_candidates == []:
             Utils.log('error', f'No function on which to apply EMULATION...')
 
@@ -327,11 +333,11 @@ class VulnObserver():
 
             for cmd in att['commands']:
                 if cmd['cmd'] == 'get_memreads':
-                    self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], graph_ref, fct)
+                    check = self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], graph_ref, fct)
                 if cmd['cmd'] == 'exec_until':
-                    self.handle_cmd_exec_until(cmd, att['bb_graph_path'], graph_ref, fct)
+                    check = self.handle_cmd_exec_until(cmd, att['bb_graph_path'], graph_ref, fct)
 
-        return True
+        return check
     
     def handle_cmd_get_memreads(self, obj_cmd, graph_path, graph_ref, addr):
         graph = self.get_graph(addr)
@@ -351,9 +357,7 @@ class VulnObserver():
             memreads += self.get_memreads(bbs[id]['addr'])
         Utils.log('debug', memreads)
 
-        self.handle_cmd_results(obj_cmd['results'], memreads)
-
-        return True
+        return self.handle_cmd_results(obj_cmd['results'], memreads)
 
     def handle_cmd_exec_until(self, obj_cmd, graph_path, graph_ref, addr):
         bbs = self.get_bbs(addr)
@@ -452,11 +456,14 @@ class VulnObserver():
     def search_vuln(self, desc_file):
         self.desc = json.load(desc_file)
         self.check_description(self.desc)
+        codename = self.desc["metadata"]["codename"]
 
         for rev in self.desc['revisions']:
             for att in rev['attributes']:
-                self.handle_attribute(att)
-            # TODO: print conclusion for revision, 'found' or 'maybe patched'
+                if not self.handle_attribute(att):
+                    Utils.log('error', f'{codename} may be patched. One {att["type"]} does not match...')
+
+        Utils.log('success', f'{codename} found!')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

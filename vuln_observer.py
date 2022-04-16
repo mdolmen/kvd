@@ -17,7 +17,7 @@ from base64 import b64encode, b64decode
 ESIL doc: https://book.rada.re/disassembling/esil.html
 """
 
-DEBUG = True
+DEBUG = False
 
 class Utils():
     @staticmethod
@@ -68,7 +68,7 @@ class VulnObserver():
         #Utils.log('info', 'Analyzing the binary...')
 
         # TEST: to speed up testing, r2 project feature works \o/
-        if 'wifid' in target:
+        if 'wifid_14.1' in target:
             Utils.log('info', 'Opening project...')
             self.r.cmd('Po wifid_14_1')
         else:
@@ -189,8 +189,6 @@ class VulnObserver():
         """
         Returns the ESIL string of all the instructions in the given bascic block.
         """
-        Utils.log('debug', hex(bb['addr']))
-        Utils.log('debug', hex(bb['size']))
         disas = self.get_disas(bb['addr'], bb['size'])
         estr = "".join(inst["esil"] for inst in disas)
         return estr
@@ -200,7 +198,6 @@ class VulnObserver():
         Returns the memory reads done at the basic block containing 'addr'.
         """
         reg_mem_accesses = self.r.cmdj(f'aeabj @ {addr}')
-        Utils.log('debug', reg_mem_accesses)
         return reg_mem_accesses['@R']
     
     def get_graph(self, addr, show=False):
@@ -280,6 +277,7 @@ class VulnObserver():
         return check
 
     def handle_att_file(self):
+        Utils.log('info', 'Searching for a FILE...')
         return True
 
     def handle_att_function(self, identifiers):
@@ -287,11 +285,14 @@ class VulnObserver():
         Look for the function matching the constraints described in 'identifiers'.
         Return the start address of all the functions matching.
         """
+        Utils.log('info', 'Searching for a FUNCTION...')
+
         # Potential function matching the constraints
         candidates = []
         found = True
 
         for id in identifiers:
+            Utils.log('debug', f'type = {id["type"]}, value = \"{id["value"]}\"')
             if id['type'] == 'symbol':
                 pass
             elif id['type'] == 'string':
@@ -311,6 +312,7 @@ class VulnObserver():
         return candidates
 
     def handle_att_emulation(self, att):
+        Utils.log('info', 'Applying EMULATION logic...')
         check = True
 
         if self.fct_candidates == []:
@@ -354,8 +356,8 @@ class VulnObserver():
 
         # TODO: get the id in grpah_path right
         for id in graph_path:
+            Utils.log('debug', f'addr = {bbs[id]["addr"]}')
             memreads += self.get_memreads(bbs[id]['addr'])
-        Utils.log('debug', memreads)
 
         return self.handle_cmd_results(obj_cmd['results'], memreads)
 
@@ -383,8 +385,8 @@ class VulnObserver():
             Utils.log('error',
                       f'Number of "{kp_type}" ({nb_keypoints}) differs from what was expected ({kp_expected})!')
 
+        Utils.log('debug', f'start = {bbs[graph_path[0]]["addr"]}, kp = {keypoint}, stop_at = {kp_stop_at}')
         regs = self.esil_emulate(bbs[graph_path[0]]['addr'], keypoint, kp_stop_at)
-        Utils.log('debug', f'{hex(regs["pc"])}')
 
         return self.handle_cmd_results(obj_cmd['results'], regs)
 
@@ -397,6 +399,7 @@ class VulnObserver():
                     pass
 
                 elif result['type'] == 'stack':
+                    Utils.log('info', 'Checking stack state...')
                     sp = data_in[self.sp]
                     if result['operand'] not in ['==', '!=', '<', '>', '<=', '>=']:
                         Utils.log('error', 'Nope, not doing that.')
@@ -405,8 +408,9 @@ class VulnObserver():
                         expected = bytes.fromhex(result['value'])
                         length = len(expected)
                         data = self.read_at(addr, length)
-                        Utils.log('debug', f'addr = {hex(addr)}, data = {data}')
-                        check = eval(f'{data} {result["operand"]} {expected}')
+                        op = result['operand']
+                        Utils.log('debug', f'addr = {hex(addr)}, operand = {op}, data = {data}')
+                        check = eval(f'{data} {op} {expected}')
                     else:
                         expected = bytes.fromhex(result['value'])
                         data = sp + result['offset']
@@ -418,6 +422,7 @@ class VulnObserver():
                     pass
 
                 elif result['type'] == 'callback':
+                    Utils.log('info', 'Applying callback...')
                     if result['action'] == 'write':
                         dest = data_in[result["elem_id"]]
                         data = result["value"]
@@ -425,8 +430,8 @@ class VulnObserver():
                         self.r.cmd(f'wx {data} @ {dest}')
 
                         # TODO: put in a testfile
-                        test = self.r.cmdj(f'pxj 8 @ {data_in[result["elem_id"]]}')
-                        Utils.log('debug', bytes(test))
+                        #test = self.r.cmdj(f'pxj 8 @ {data_in[result["elem_id"]]}')
+                        #Utils.log('debug', bytes(test))
             break
 
         return check

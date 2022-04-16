@@ -17,6 +17,7 @@ from base64 import b64encode, b64decode
 ESIL doc: https://book.rada.re/disassembling/esil.html
 """
 
+INFO  = False
 DEBUG = False
 
 class Utils():
@@ -30,6 +31,8 @@ class Utils():
         elif type == 'success':
             print(f'{Fore.GREEN}[+]{Style.RESET_ALL} {msg}')
         elif type == 'info':
+            if not INFO:
+                return
             print(f'{Fore.YELLOW}[*]{Style.RESET_ALL} {msg}')
         elif type == 'debug':
             if not DEBUG:
@@ -69,10 +72,10 @@ class VulnObserver():
 
         # TEST: to speed up testing, r2 project feature works \o/
         if 'wifid_14.1' in target:
-            Utils.log('info', 'Opening project...')
+            Utils.log('success', 'Opening project...')
             self.r.cmd('Po wifid_14_1')
         else:
-            Utils.log('info', 'Analyzing the binary...')
+            Utils.log('success', 'Analyzing the binary...')
             self.r.cmd('aaa')
 
         # Init ESIL
@@ -484,7 +487,11 @@ if __name__ == '__main__':
                         help='Check the correctness of a description file')
     parser.add_argument('-t', '--target', required=True,
                         help='Target file in which to search for the given vuln')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
+
+    INFO = (args.verbose & 1)
+    DEBUG = (args.verbose > 1)
 
     vo = VulnObserver(args.target)
     #vo.get_graph(0x77AE)

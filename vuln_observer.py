@@ -127,11 +127,6 @@ class VulnObserver():
 
         Returns a JSON object representing the register state.
         """
-        # Reset ESIL state
-        self.r.cmd('aei-')
-
-        # Init ESIL state
-        self.r.cmd('aei')
         self.r.cmd(f's {start}')
         self.r.cmd(f'aeip')
 

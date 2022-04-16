@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "codename": "",
+        "codename": "wifid_test",
         "OS": "iOS",
         "versions": [""],
         "patched_in": "version",
@@ -41,6 +41,20 @@
                 },
                 {
                     "type": "EMULATION",
+                    "bb_graph_label": "fct_0x1000f4ef8",
+                    "bb_graph_path": [49],
+                    "context": "TODO",
+                    "commands": [
+                        {
+                            "cmd": "exec_until",
+                            "keypoints": {"type": "branch", "expected": 2, "position": 1},
+                            "results": [
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "EMULATION",
                     "bb_graph_label": "CHANGEME",
                     "bb_graph_path": [51],
                     "context": "TODO",
@@ -49,8 +63,8 @@
                             "cmd": "exec_until",
                             "keypoints": {"type": "branch", "expected": 4, "position": 0},
                             "results": [
-                                {"type": "stack", "offset": 0, "deref": false, "value": "00", "operand": "!="},
-                                {"type": "stack", "offset": 8, "deref": false, "value": "deadbeef", "operand": "=="}
+                                {"type": "stack", "offset": 0, "deref": true, "value": "0000000000000000", "operand": "!="},
+                                {"type": "stack", "offset": 8, "deref": true, "value": "deadbeef", "operand": "=="}
                             ]
                         }
                     ]

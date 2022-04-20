@@ -1,0 +1,81 @@
+{
+    "metadata": {
+        "codename": "wifid_test",
+        "OS": "iOS",
+        "versions": [""],
+        "patched_in": "version",
+        "type": "format string",
+        "target": "/usr/sbin/wifid",
+        "idb": "path_to_idb"
+    },
+    "revisions": [
+        {
+            "label": "rev_0",
+            "attributes": [
+                {
+                    "type": "FILE",
+                    "filenames": ["/usr/sbin/wifid"]
+                },
+                {
+                    "type": "FUNCTION",
+                    "identifiers": [
+                        {
+                            "type": "string",
+                            "value": "cstr.Scanning(%s) for MRU Networks"
+                        }
+                    ]
+                },
+                {
+                    "type": "EMULATION",
+                    "bb_graph_label": "fct_0x1000f4ef8",
+                    "bb_graph_path": [49],
+                    "context": "TODO",
+                    "commands": [
+                        {
+                            "cmd": "get_memreads",
+                            "results": [
+                                {"type": "callback", "elem_id": 0, "action": "write", "value": "deadbeef"}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "EMULATION",
+                    "bb_graph_label": "fct_0x1000f4ef8",
+                    "bb_graph_path": [49],
+                    "context": "TODO",
+                    "commands": [
+                        {
+                            "cmd": "exec_until",
+                            "keypoints": {"type": "branch", "expected": 2, "position": 1},
+                            "results": [
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "EMULATION",
+                    "bb_graph_label": "CHANGEME",
+                    "bb_graph_path": [51],
+                    "context": "TODO",
+                    "commands": [
+                        {
+                            "cmd": "exec_until",
+                            "keypoints": {"type": "branch", "expected": 4, "position": 0},
+                            "results": [
+                                {"type": "stack", "offset": 0, "deref": true, "value": "0000000000000000", "operand": "!="},
+                                {"type": "stack", "offset": 8, "deref": true, "value": "deadbeef", "operand": "=="}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "graphs": [
+        {
+            "label": "fct_0x1000f4ef8",
+            "graph": "gASVsAoAAAAAAACMBmlncmFwaJSMBUdyYXBolJOUKEtTXZQoSwBLAYaUSwBLUoaUSwFLAoaUSwFLT4aUSwJLA4aUSwJLC4aUSwNLBIaUSwNLCIaUSwRLBYaUSwVLH4aUSwhLCYaUSwlLCoaUSwpLBIaUSwtLDIaUSwtLDoaUSwxLBIaUSwxLDYaUSw1LCYaUSw5LD4aUSw5LE4aUSw9LEIaUSw9LEoaUSxBLHIaUSxFLCoaUSxJLEIaUSxNLFIaUSxNLJoaUSxRLJ4aUSxVLFoaUSxVLGYaUSxZLF4aUSxZLGIaUSxdLBYaUSxhLF4aUSxlLFoaUSxpLG4aUSxpLIYaUSxtLHIaUSxtLHYaUSxxLBIaUSxxLEYaUSx1LHoaUSx1LIIaUSx5LH4aUSx9LBoaUSx9LB4aUSyBLHoaUSyFLIoaUSyFLI4aUSyJLG4aUSyNLJIaUSyNLJYaUSyRLIoaUSyVLJIaUSyZLK4aUSydLFYaUSydLGoaUSyhLKYaUSyhLTYaUSylLKoaUSylLLYaUSypLK4aUSypLLIaUSytLJ4aUSytLKIaUSyxLJ4aUSy1LKoaUSy1LLoaUSy5LL4aUSy5LMIaUSy9LKoaUSzBLMYaUSzBLNoaUSzFLMoaUSzFLNYaUSzJLM4aUSzJLNIaUSzNLJ4aUSzRLM4aUSzVLKoaUSzZLOYaUSzdLOIaUSzdLOoaUSzhLOYaUSzhLMYaUSzlLMYaUSzlLN4aUSzpLOIaUSzpLO4aUSztLPIaUSztLSIaUSzxLPYaUSzxLQ4aUSz1LOIaUSz1LPoaUSz5LP4aUSz5LQIaUSz9LOIaUS0BLQYaUS0BLQoaUS0FLP4aUS0JLQYaUS0NLOIaUS0NLRIaUS0RLPYaUS0RLRYaUS0VLRoaUS0VLR4aUS0ZLOIaUS0dLTIaUS0hLOIaUS0hLSYaUS0lLPIaUS0lLSoaUS0pLRoaUS0pLS4aUS0tLTIaUS0xLRoaUS01LLYaUS01LToaUS05LJ4aUS09LUIaUS09LUYaUS1BLAoaUS1FLUIaUS1JLAYaUZYh9lH2UKIwCaWSUXZQoRwAAAAAAAAAARz/wAAAAAAAAR0AAAAAAAAAAR0AIAAAAAAAAR0AQAAAAAAAAR0AUAAAAAAAAR0AYAAAAAAAAR0AcAAAAAAAAR0AgAAAAAAAAR0AiAAAAAAAAR0AkAAAAAAAAR0AmAAAAAAAAR0AoAAAAAAAAR0AqAAAAAAAAR0AsAAAAAAAAR0AuAAAAAAAAR0AwAAAAAAAAR0AxAAAAAAAAR0AyAAAAAAAAR0AzAAAAAAAAR0A0AAAAAAAAR0A1AAAAAAAAR0A2AAAAAAAAR0A3AAAAAAAAR0A4AAAAAAAAR0A5AAAAAAAAR0A6AAAAAAAAR0A7AAAAAAAAR0A8AAAAAAAAR0A9AAAAAAAAR0A+AAAAAAAAR0A/AAAAAAAAR0BAAAAAAAAAR0BAgAAAAAAAR0BBAAAAAAAAR0BBgAAAAAAAR0BCAAAAAAAAR0BCgAAAAAAAR0BDAAAAAAAAR0BDgAAAAAAAR0BEAAAAAAAAR0BEgAAAAAAAR0BFAAAAAAAAR0BFgAAAAAAAR0BGAAAAAAAAR0BGgAAAAAAAR0BHAAAAAAAAR0BHgAAAAAAAR0BIAAAAAAAAR0BIgAAAAAAAR0BJAAAAAAAAR0BJgAAAAAAAR0BKAAAAAAAAR0BKgAAAAAAAR0BLAAAAAAAAR0BLgAAAAAAAR0BMAAAAAAAAR0BMgAAAAAAAR0BNAAAAAAAAR0BNgAAAAAAAR0BOAAAAAAAAR0BOgAAAAAAAR0BPAAAAAAAAR0BPgAAAAAAAR0BQAAAAAAAAR0BQQAAAAAAAR0BQgAAAAAAAR0BQwAAAAAAAR0BRAAAAAAAAR0BRQAAAAAAAR0BRgAAAAAAAR0BRwAAAAAAAR0BSAAAAAAAAR0BSQAAAAAAAR0BSgAAAAAAAR0BSwAAAAAAAR0BTAAAAAAAAR0BTQAAAAAAAR0BTgAAAAAAAR0BTwAAAAAAAR0BUAAAAAAAAR0BUQAAAAAAAR0BUgAAAAAAAZYwFbGFiZWyUXZQojBJzeW0uZnVuYy4xMDAwZjRlZjiUjAsweDEwMDBmNGYzY5SMCzB4MTAwMGY1MDFjlIwLMHgxMDAwZjU1YmOUjAsweDEwMDBmNTZiNJSMCzB4MTAwMGY1NTIwlIwLMHgxMDAwZjU2YzCUjAsweDEwMDBmNTU0NJSMCzB4MTAwMGY1NWQ0lIwLMHgxMDAwZjU2MjiUjAsweDEwMDBmNTZhY5SMCzB4MTAwMGY1MDJjlIwLMHgxMDAwZjU1ZjSUjAsweDEwMDBmNTYwY5SMCzB4MTAwMGY1MDM0lIwLMHgxMDAwZjU2MzCUjAsweDEwMDBmNTY3MJSMCzB4MTAwMGY1Njk0lIwLMHgxMDAwZjU2NDiUjAsweDEwMDBmNTA1Y5SMCzB4MTAwMGY1MzcwlIwLMHgxMDAwZjU0YmOUjAsweDEwMDBmNTUwMJSMCzB4MTAwMGY1NTE0lIwLMHgxMDAwZjU1MGOUjAsweDEwMDBmNTRkOJSMCzB4MTAwMGY1MzgwlIwLMHgxMDAwZjU0NWOUjAsweDEwMDBmNTY3Y5SMCzB4MTAwMGY1NDgwlIwLMHgxMDAwZjU0YjSUjAsweDEwMDBmNTUyY5SMCzB4MTAwMGY1NDg4lIwLMHgxMDAwZjUzOTCUjAsweDEwMDBmNTQ0Y5SMCzB4MTAwMGY1M2E4lIwLMHgxMDAwZjU0NDSUjAsweDEwMDBmNTQxY5SMCzB4MTAwMGY1MDgwlIwLMHgxMDAwZjUzNzSUjAsweDEwMDBmNTA5OJSMCzB4MTAwMGY1MGJjlIwLMHgxMDAwZjUzNjCUjAsweDEwMDBmNTA4OJSMCzB4MTAwMGY1MzZjlIwLMHgxMDAwZjUwZDCUjAsweDEwMDBmNTBkY5SMCzB4MTAwMGY1MzU4lIwLMHgxMDAwZjUwZTiUjAsweDEwMDBmNTMzNJSMCzB4MTAwMGY1NTY4lIwLMHgxMDAwZjU1YTiUjAsweDEwMDBmNTU4NJSMCzB4MTAwMGY1MzQ4lIwLMHgxMDAwZjUxNDSUjAsweDEwMDBmNTE2NJSMCzB4MTAwMGY1MzI0lIwLMHgxMDAwZjUxNTSUjAsweDEwMDBmNTE3MJSMCzB4MTAwMGY1MTljlIwLMHgxMDAwZjUyMTSUjAsweDEwMDBmNTJhNJSMCzB4MTAwMGY1MmI4lIwLMHgxMDAwZjUzMWOUjAsweDEwMDBmNTJkOJSMCzB4MTAwMGY1MzAwlIwLMHgxMDAwZjUyZGOUjAsweDEwMDBmNTIyOJSMCzB4MTAwMGY1MjQ4lIwLMHgxMDAwZjUyNTCUjAsweDEwMDBmNTI5MJSMCzB4MTAwMGY1MjY4lIwLMHgxMDAwZjUxYjCUjAsweDEwMDBmNTFkMJSMCzB4MTAwMGY1MWQ4lIwLMHgxMDAwZjUxZjCUjAsweDEwMDBmNTI4OJSMCzB4MTAwMGY1MGE0lIwLMHgxMDAwZjUwYjiUjAsweDEwMDBmNGY1NJSMCzB4MTAwMGY1MDE0lIwLMHgxMDAwZjRmZWOUjAsweDEwMDBmNGYzNJRldX2UdJRSlH2UYi4="
+        }
+    ]
+}

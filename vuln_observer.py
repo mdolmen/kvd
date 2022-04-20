@@ -462,6 +462,7 @@ class VulnObserver():
         return candidates
     
     def search_vuln(self, desc_file):
+        vulnerable = True
         self.desc = json.load(desc_file)
         self.check_description(self.desc)
         codename = self.desc["metadata"]["codename"]
@@ -469,9 +470,12 @@ class VulnObserver():
         for rev in self.desc['revisions']:
             for att in rev['attributes']:
                 if not self.handle_attribute(att):
-                    Utils.log('error', f'{codename} may be patched. One {att["type"]} does not match...')
+                    Utils.log('fail', f'{codename} may be patched. One {att["type"]} does not match...')
+                    vulnerable = False
 
         Utils.log('success', f'{codename} found!')
+
+        return vulnerable
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -69,7 +69,6 @@ class VulnObserver():
         self.r = r2pipe.open(self.target, self.options)
 
         # TODO: fine tune the analysis depending of the needs for faster load
-        #Utils.log('info', 'Analyzing the binary...')
 
         # TEST: to speed up testing, r2 project feature works \o/
         if 'wifid_14.1' in self.target:
@@ -252,6 +251,12 @@ class VulnObserver():
 
         return graph
 
+    def cmp_graph(self, a, b):
+        """
+        Check if graph 'b' is the same as 'a'.
+        """
+        return b.isomorphic(a)
+
     def read_at(self, addr, length):
         return bytes(self.r.cmdj(f'pxj {length} @ {addr}'))
 
@@ -322,56 +327,48 @@ class VulnObserver():
         if self.fct_candidates == []:
             Utils.log('error', f'No function on which to apply EMULATION...')
 
-        # TODO: get graph path
-
-        # TODO: check that the new graph is equivalent
-        # TODO: a 'strict' mode?
-        #   -> if graph differs stop there and go check for the vuln manually
-        #   -> a more permissive option which tries anyway, if it's a big function, maybe the
-        #      changes doesn't affect our path and BB ids are the same
-
         # TODO: apply 'context'
 
-        for fct in self.fct_candidates:
-            graph_ref = self.get_saved_graph(att['bb_graph_filepath'])
+        for i, fct in enumerate(self.fct_candidates):
+            graph_match = True
 
-            # TODO: check_graphs() here
+            # Check that this function BB graph matches the reference one
+            for filepath in att['bb_graph_filepaths']:
+                graph_ref = self.get_saved_graph(filepath)
+                graph_fct = self.get_graph(fct)
+                graph_match = self.cmp_graph(graph_ref, graph_fct)
+                if graph_match:
+                    break
+
+            if not graph_match:
+                Utils.log('fail', f'Difference in basic block graphs for function holding {hex(fct)}')
+                check = False
+                break
 
             for cmd in att['commands']:
                 if cmd['cmd'] == 'get_memreads':
-                    check = self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], graph_ref, fct)
+                    check = self.handle_cmd_get_memreads(cmd, att['bb_graph_path'], fct)
                 if cmd['cmd'] == 'exec_until':
-                    check = self.handle_cmd_exec_until(cmd, att['bb_graph_path'], graph_ref, fct)
+                    check = self.handle_cmd_exec_until(cmd, att['bb_graph_path'], fct)
 
         return check
     
-    def handle_cmd_get_memreads(self, obj_cmd, graph_path, graph_ref, addr):
-        #graph = self.get_graph(addr)
-
-        # TODO: check graphs match (function)
-        #Utils.log('debug', graph)
-        #Utils.log('debug', '')
-        #Utils.log('debug', graph_ref)
-        #Utils.log('debug', graph.average_path_length())
-        #Utils.log('debug', graph_ref.average_path_length())
-
+    def handle_cmd_get_memreads(self, obj_cmd, graph_path, addr):
         memreads = []
         bbs = self.get_bbs(addr)
 
-        # TODO: get the id in grpah_path right
         for id in graph_path:
             Utils.log('debug', f'addr = {bbs[id]["addr"]}')
             memreads += self.get_memreads(bbs[id]['addr'])
 
         return self.handle_cmd_results(obj_cmd['results'], memreads)
 
-    def handle_cmd_exec_until(self, obj_cmd, graph_path, graph_ref, addr):
+    def handle_cmd_exec_until(self, obj_cmd, graph_path, addr):
         bbs = self.get_bbs(addr)
         kp_type = obj_cmd['keypoints']['type']
         kp_expected = obj_cmd['keypoints']['expected']
         kp_stop_at = obj_cmd['keypoints']['position']
 
-        # TODO: get the id in graph_path right
         estr = ""
         for id in graph_path:
             estr += self.get_bb_to_esil_str(bbs[id])
@@ -433,9 +430,6 @@ class VulnObserver():
                         Utils.log('debug', f'Writing {data} at {hex(dest)}')
                         self.r.cmd(f'wx {data} @ {dest}')
 
-                        # TODO: put in a testfile
-                        #test = self.r.cmdj(f'pxj 8 @ {data_in[result["elem_id"]]}')
-                        #Utils.log('debug', bytes(test))
             break
 
         return check

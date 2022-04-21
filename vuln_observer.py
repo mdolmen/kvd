@@ -6,7 +6,7 @@ import argparse
 import inspect
 import subprocess
 import json
-import pickle
+import os
 
 from colorama import Fore, Style, init as colorama_init
 from tempfile import NamedTemporaryFile
@@ -60,18 +60,19 @@ class VulnObserver():
     def __init__(self, target):
         colorama_init()
 
+        self.target = target
         self.desc = None
         self.fct_candidates = []
         self.pc = 'pc'
         self.sp = 'sp'
-        self.options = self.init_options(target)
-        self.r = r2pipe.open(target, self.options)
+        self.options = self.init_options(self.target)
+        self.r = r2pipe.open(self.target, self.options)
 
         # TODO: fine tune the analysis depending of the needs for faster load
         #Utils.log('info', 'Analyzing the binary...')
 
         # TEST: to speed up testing, r2 project feature works \o/
-        if 'wifid_14.1' in target:
+        if 'wifid_14.1' in self.target:
             Utils.log('success', 'Opening project...')
             self.r.cmd('Po wifid_14_1')
         else:
@@ -203,51 +204,51 @@ class VulnObserver():
         reg_mem_accesses = self.r.cmdj(f'aeabj @ {addr}')
         return reg_mem_accesses['@R']
     
-    def get_graph(self, addr, show=False):
+    def get_graph(self, addr, save=False, dest=None):
         """
-        Return the GML graph of the function containing 'addr'.
+        Returns the GML graph of the function containing 'addr'.
+        Can save the GML output from r2 to a file.
         """
+        start, _ = self.get_fct_range(addr)
+        tmp = None
+
+        if save:
+            gname = f'{self.target}_{hex(addr)}.gml'
+        else:
+            tmp = NamedTemporaryFile()
+            gname = tmp.name
+            Utils.log('debug', gname)
+
+        if dest:
+            gname = dest
+
         # 'agfg' command doesn't have a JSON option for output and the JSON format of the graph is
         # not as concise as the GML one.
-        tmp = NamedTemporaryFile()
-        self.r.cmd(f'agfg @ {addr} > {tmp.name}')
-        start, _ = self.get_fct_range(addr)
+        self.r.cmd(f'agfg @ {addr} > {gname}')
+        Utils.log('success', f'Basic block graph for {hex(addr)} written to {gname}')
 
         # Create GML graph from file
         g = Graph()
-        result = g.Read_GML(tmp.name)
-        tmp.close()
+        graph = g.Read_GML(gname)
+        Utils.log('debug', graph)
 
-        # Serialize the graph and format for a vuln decription
-        graph = b64encode(pickle.dumps(result)).decode('utf-8')
-        output = json.dumps({'label': f'fct_{hex(start)}', 'graph': graph})
-        if show:
-            Utils.log('info', f'Serialized graph for function containing {hex(addr)}:')
-            Utils.log('', output)
+        if tmp:
+            tmp.close()
 
-        return result
+        return graph
 
     def get_graph_paths(self, g, start, end):
         return g.get_all_simple_paths(start, to=end)
 
-    def get_graph_from_desc(self, label):
+    def get_saved_graph(self, filepath):
         """
-        Get the data related to graph "label" from the desc, decode, deserialize and return a graph
-        object from it.
+        Returns an igraph object from a file containing a graph in GML format.
         """
-        data = {}
+        if not os.path.exists(filepath):
+            Utils.log('error', f'{filepath} does not exists')
 
-        for g in self.desc['graphs']:
-            if g['label'] == label:
-                data = g
-                break
-
-        if data == {}:
-            Utils.log('fail', f'Graph \"{label}\" was not found')
-            # DEBUG
-            return
-
-        graph = pickle.loads(b64decode(data['graph']))
+        g = Graph()
+        graph = g.Read_GML(filepath)
 
         return graph
 
@@ -332,7 +333,7 @@ class VulnObserver():
         # TODO: apply 'context'
 
         for fct in self.fct_candidates:
-            graph_ref = self.get_graph_from_desc(att['bb_graph_label'])
+            graph_ref = self.get_saved_graph(att['bb_graph_filepath'])
 
             # TODO: check_graphs() here
 
@@ -345,7 +346,7 @@ class VulnObserver():
         return check
     
     def handle_cmd_get_memreads(self, obj_cmd, graph_path, graph_ref, addr):
-        graph = self.get_graph(addr)
+        #graph = self.get_graph(addr)
 
         # TODO: check graphs match (function)
         #Utils.log('debug', graph)
@@ -494,16 +495,10 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
-    INFO = (args.verbose & 1)
+    INFO = (args.verbose > 0)
     DEBUG = (args.verbose > 1)
 
     vo = VulnObserver(args.target)
-    #vo.get_graph(0x77AE)
-    #vo.desc = json.load(args.search)
-    #vo.get_graph_from_desc("fct_0x1000f4ef8")
-    #exit(1)
-
-    # TEST: run it with: 0x77AE 0x7890
 
     if args.extract:
         # TODO: get_bb_ids
@@ -524,7 +519,7 @@ if __name__ == '__main__':
         graphs = []
 
         for addr in addresses:
-            graphs.append(vo.get_graph(addr), show=True)
+            graphs.append(vo.get_graph(addr), save=True)
 
     if args.check:
         self.desc = json.load(desc_file)

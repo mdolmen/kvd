@@ -48,5 +48,18 @@ class TestVulnObserver(unittest.TestCase):
         self.assertFalse(vo.search_vuln(f))
         f.close()
 
+    def test_get_graph_ok(self):
+        gfile = '/tmp/vo_test_graph.gml'
+        ga = self.vo.get_graph(0x1000f4ef8, save=True, dest=gfile)
+        gb = self.vo.get_saved_graph(gfile)
+        self.assertTrue(gb.isomorphic(ga))
+
+    def test_get_graph_ko(self):
+        gfile = '/tmp/vo_test_graph.gml'
+        ga = self.vo.get_graph(0x1000f4ef8, save=True, dest=gfile)
+        gb = self.vo.get_saved_graph(gfile)
+        gb.delete_edges(22)
+        self.assertFalse(gb.isomorphic(ga))
+
 if __name__ == '__main__':
     unittest.main()

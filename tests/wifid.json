@@ -21,7 +21,7 @@
                     "identifiers": [
                         {
                             "type": "string",
-                            "value": "cstr.Scanning(%s) for MRU Networks"
+                            "name": "cstr.Scanning(%s) for MRU Networks"
                         }
                     ]
                 },

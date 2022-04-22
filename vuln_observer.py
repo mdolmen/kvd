@@ -205,6 +205,43 @@ class VulnObserver():
 
     def get_string(self, s):
         return self.r.cmd(f'iz~{s}')
+
+    def get_symbol(self, s, is_function):
+        """
+        Returns the address of the given symbol.
+        """
+        result = self.r.cmd(f'is~{s}')
+        result = ' '.join(result.split(' ')).split()
+        addr = 0
+
+        if result:
+            sym_addr = int(result[2], 16)
+            sym_type = result[4]
+            sym_name = result[-1]
+            Utils.log('debug', f'sym_type = {sym_type}, sym_name = {sym_name}')
+
+            if is_function and sym_type != "FUNC":
+                addr = 0
+            elif sym_name == s:
+                addr = sym_addr
+
+        return addr
+
+    def get_method(self, classname, method):
+        """
+        Returns the address of the 'method' in 'classname'.
+        """
+        classes = self.r.cmdj(f'icj')
+        addr = 0
+
+        Utils.log('debug', f'Looking for method "{method}" in class "{classname}"')
+        for c in classes:
+            if c['classname'] == classname:
+                for m in c['methods']:
+                    if m['name'] == method:
+                        addr = m['addr']
+
+        return addr
     
     def get_graph(self, addr, save=False, dest=None):
         """
@@ -282,7 +319,7 @@ class VulnObserver():
             #self.handle_att_file()
             pass
         elif att['type'] == 'FUNCTION':
-            check = self.fct_candidates = self.handle_att_function(att['identifiers'])
+            self.fct_candidates += self.handle_att_function(att['identifiers'])
         elif att['type'] == 'EMULATION':
             check = self.handle_att_emulation(att)
 
@@ -304,22 +341,24 @@ class VulnObserver():
         found = True
 
         for id in identifiers:
-            Utils.log('debug', f'type = {id["type"]}, value = \"{id["value"]}\"')
+            Utils.log('debug', f'type = {id["type"]}, name = \"{id["name"]}\"')
             if id['type'] == 'symbol':
-                pass
+                candidates = self.handle_id_symbol(id, candidates)
             elif id['type'] == 'string':
                 candidates = self.handle_id_string(id, candidates)
             elif id['type'] == 'bb_graph':
+                # TODO: parse all function looking for a specific graph
                 pass
+
+            Utils.log('debug', candidates)
 
             if len(candidates) == 0:
                 found = False
-                Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["value"]}\": no function matching all the constraints')
+                Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["name"]}\": no function matching all the constraints')
                 break
 
         if found:
-            Utils.log('success', f'Found a matching function: {hex(candidates[0])}')
-            # TODO: handle multiple function still matches
+            Utils.log('success', f'Found matching function(s): {[hex(c) for c in candidates]}')
 
         return candidates
 
@@ -459,6 +498,27 @@ class VulnObserver():
 
         return candidates
     
+    def handle_id_symbol(self, obj_symbol, candidates):
+        Utils.log('debug', f'Looking for symbol {obj_symbol["name"]}')
+        new_candidates = []
+
+        if obj_symbol['class'] != '':
+            addr = self.get_method(obj_symbol['class'], obj_symbol['name'])
+            if addr:
+                new_candidates.append(addr)
+        else:
+            addr = self.get_symbol(obj_symbol['name'], obj_symbol['is_function'])
+            if addr:
+                new_candidates.append(addr)
+
+        if len(candidates) == 0:
+            # No other result yet, it's the first constraint being tested.
+            return new_candidates
+
+        candidates = Utils.present_in_both(candidates, new_candidates)
+
+        return candidates
+
     def search_vuln(self, desc_file):
         vulnerable = True
         self.desc = json.load(desc_file)

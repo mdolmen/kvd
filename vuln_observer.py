@@ -202,6 +202,9 @@ class VulnObserver():
         """
         reg_mem_accesses = self.r.cmdj(f'aeabj @ {addr}')
         return reg_mem_accesses['@R']
+
+    def get_string(self, s):
+        return self.r.cmd(f'iz~{s}')
     
     def get_graph(self, addr, save=False, dest=None):
         """
@@ -435,7 +438,7 @@ class VulnObserver():
         return check
 
     def handle_id_string(self, obj_string, candidates):
-        result = self.r.cmd(f'iz~{obj_string["value"]}')
+        result = self.get_string(obj_string["value"])
 
         if result:
             addr = result.split(' ')[2]

@@ -315,19 +315,12 @@ class VulnObserver():
         """
         check = True
 
-        if att['type'] == 'FILE':
-            #self.handle_att_file()
-            pass
-        elif att['type'] == 'FUNCTION':
+        if att['type'] == 'FUNCTION':
             check = self.handle_att_function(att['identifiers'], att['fct_id'])
         elif att['type'] == 'EMULATION':
             check = self.handle_att_emulation(att)
 
         return check
-
-    def handle_att_file(self):
-        Utils.log('info', 'Searching for a FILE...')
-        return True
 
     def handle_att_function(self, identifiers, fct_id):
         """

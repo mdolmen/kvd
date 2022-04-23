@@ -1,4 +1,5 @@
 import unittest
+import json
 
 from vuln_observer import VulnObserver
 
@@ -60,6 +61,32 @@ class TestVulnObserver(unittest.TestCase):
         gb = self.vo.get_saved_graph(gfile)
         gb.delete_edges(22)
         self.assertFalse(gb.isomorphic(ga))
+
+    def test_handle_id_symbol_fct(self):
+        candidates = []
+        id = json.loads(
+            '{"type": "symbol",'
+            '"name": "_Apple80211Open",'
+            '"is_function": true,'
+            '"class": ""}'
+        )
+        candidates = self.vo.handle_id_symbol(id, candidates)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0], 0x10015ea28)
+
+    def test_handle_id_symbol_method(self):
+        candidates = []
+        id = json.loads(
+            '{"type": "symbol",'
+            '"name": "sharedInstance",'
+            '"is_function": true,'
+            '"class": "WiFiCloudAssetsClient"}'
+        )
+        candidates = self.vo.handle_id_symbol(id, candidates)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0], 0x1000025c0)
 
 if __name__ == '__main__':
     unittest.main()

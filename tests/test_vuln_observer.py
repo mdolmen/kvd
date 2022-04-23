@@ -88,5 +88,19 @@ class TestVulnObserver(unittest.TestCase):
         self.assertEqual(len(candidates), 1)
         self.assertEqual(candidates[0], 0x1000025c0)
 
+    def test_handle_att_function_notfound(self):
+        function = json.loads('{"type": "FUNCTION", "fct_id": 1, "identifiers": ['
+            '{"type": "symbol", "name": "sharedInstance", "is_function": true,'
+            '"class": "WiFiCloudAssetsClient"},'
+            '{"type": "symbol", "name": "_Apple80211Open", "is_function": true,'
+            '"class": ""} ] }'
+        )
+        fct_id = function['fct_id']
+        print(f'fct_id = {fct_id}')
+        found = self.vo.handle_att_function(function['identifiers'], fct_id)
+
+        self.assertEqual(len(self.vo.fct_candidates[fct_id]), 0)
+        self.assertFalse(found)
+
 if __name__ == '__main__':
     unittest.main()

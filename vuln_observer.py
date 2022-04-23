@@ -62,7 +62,7 @@ class VulnObserver():
 
         self.target = target
         self.desc = None
-        self.fct_candidates = []
+        self.fct_candidates = dict()
         self.pc = 'pc'
         self.sp = 'sp'
         self.options = self.init_options(self.target)
@@ -319,7 +319,7 @@ class VulnObserver():
             #self.handle_att_file()
             pass
         elif att['type'] == 'FUNCTION':
-            self.fct_candidates += self.handle_att_function(att['identifiers'])
+            check = self.handle_att_function(att['identifiers'], att['fct_id'])
         elif att['type'] == 'EMULATION':
             check = self.handle_att_emulation(att)
 
@@ -329,7 +329,7 @@ class VulnObserver():
         Utils.log('info', 'Searching for a FILE...')
         return True
 
-    def handle_att_function(self, identifiers):
+    def handle_att_function(self, identifiers, fct_id):
         """
         Look for the function matching the constraints described in 'identifiers'.
         Return the start address of all the functions matching.
@@ -357,21 +357,23 @@ class VulnObserver():
                 Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["name"]}\": no function matching all the constraints')
                 break
 
+        self.fct_candidates[fct_id] = candidates
+
         if found:
             Utils.log('success', f'Found matching function(s): {[hex(c) for c in candidates]}')
 
-        return candidates
+        return found
 
     def handle_att_emulation(self, att):
         Utils.log('info', 'Applying EMULATION logic...')
         check = True
 
-        if self.fct_candidates == []:
+        if self.fct_candidates[att['fct_id']] == []:
             Utils.log('error', f'No function on which to apply EMULATION...')
 
         # TODO: apply 'context'
 
-        for i, fct in enumerate(self.fct_candidates):
+        for i, fct in enumerate(self.fct_candidates[att['fct_id']]):
             graph_match = True
 
             # Check that this function BB graph matches the reference one
@@ -528,10 +530,13 @@ class VulnObserver():
         for rev in self.desc['revisions']:
             for att in rev['attributes']:
                 if not self.handle_attribute(att):
-                    Utils.log('fail', f'{codename} may be patched. One {att["type"]} does not match...')
                     vulnerable = False
+                    break
 
-        Utils.log('success', f'{codename} found!')
+        if vulnerable:
+            Utils.log('success', f'{codename} found!')
+        else:
+            Utils.log('fail', f'{codename} may be patched. One {att["type"]} does not match...')
 
         return vulnerable
 

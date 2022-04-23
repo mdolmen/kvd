@@ -18,6 +18,7 @@
                 },
                 {
                     "type": "FUNCTION",
+                    "fct_id": 0,
                     "identifiers": [
                         {
                             "type": "string",
@@ -27,6 +28,7 @@
                 },
                 {
                     "type": "EMULATION",
+                    "fct_id": 0,
                     "bb_graph_filepaths": ["tests/wifid_14.1_0x1000f4ef8.gml"],
                     "bb_graph_path": [49],
                     "context": "TODO",
@@ -41,6 +43,7 @@
                 },
                 {
                     "type": "EMULATION",
+                    "fct_id": 0,
                     "bb_graph_filepaths": ["tests/wifid_14.1_0x1000f4ef8.gml"],
                     "bb_graph_path": [49],
                     "context": "TODO",
@@ -55,6 +58,7 @@
                 },
                 {
                     "type": "EMULATION",
+                    "fct_id": 0,
                     "bb_graph_filepaths": [],
                     "bb_graph_path": [51],
                     "context": "TODO",

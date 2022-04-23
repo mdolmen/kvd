@@ -477,7 +477,7 @@ class VulnObserver():
         return check
 
     def handle_id_string(self, obj_string, candidates):
-        result = self.get_string(obj_string["value"])
+        result = self.get_string(obj_string["name"])
 
         if result:
             addr = result.split(' ')[2]

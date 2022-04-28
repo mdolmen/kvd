@@ -542,6 +542,8 @@ if __name__ == '__main__':
                         help='Get the basic block IDs corresponding to the given addresses')
     parser.add_argument('-g', '--get-graph', nargs='*',
                         help='Get the graph representation of a function (GML format)')
+    parser.add_argument('-p', '--get-path', nargs=2,
+                        help='Get the graph path between 2 basic block ID')
     parser.add_argument('-e', '--extract', nargs='*',
                         help='Get all info pertaining to the given addresses (BB IDs + graph)')
     parser.add_argument('-s', '--search', type=argparse.FileType('r'),
@@ -576,7 +578,6 @@ if __name__ == '__main__':
         addresses = [int(a, 16) for a in args.get_bb_ids]
         bb_ids = vo.get_bb_ids(addresses)
 
-        # TODO: output in json ready to be copy/pasted in a description file
         for i in range(len(args.get_bb_ids)):
             print(f"Basic block ID of {hex(addresses[i])}: {bb_ids[i]}")
         exit(0)
@@ -586,6 +587,17 @@ if __name__ == '__main__':
 
         for addr in addresses:
             vo.get_graph(addr, save=True)
+
+    if args.get_path:
+        addresses = [int(a, 16) for a in args.get_path]
+        start, end = vo.get_bb_ids(addresses)
+
+        paths = vo.get_graph_paths(vo.get_graph(addresses[0]), start, end)
+
+        if len(paths) == 0:
+            Utils.log('fail', f'No path found between basic blocks {start} and {end}')
+        else:
+            Utils.log('success', f'Graph simple path from {hex(addresses[0])} to {hex(addresses[1])}: {paths}')
 
     if args.check:
         self.desc = json.load(desc_file)

@@ -13,10 +13,6 @@
             "label": "rev_0",
             "attributes": [
                 {
-                    "type": "FILE",
-                    "filenames": ["/usr/sbin/wifid"]
-                },
-                {
                     "type": "FUNCTION",
                     "fct_id": 0,
                     "identifiers": [

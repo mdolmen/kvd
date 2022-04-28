@@ -251,6 +251,8 @@ class VulnObserver():
         Returns the GML graph of the function containing 'addr'.
         Can save the GML output from r2 to a file.
         """
+        Utils.log('info', f'Getting graph for function containing {hex(addr)}...')
+
         start, _ = self.get_fct_range(addr)
         tmp = None
 
@@ -569,18 +571,15 @@ if __name__ == '__main__':
     vo = VulnObserver(target, is_dyld)
 
     if args.extract:
-        # TODO: get_bb_ids
-        # TODO: get_graph
-        # TODO: get_graph_path between 2 bb_id
-        pass
+        args.get_bb_ids = args.extract
+        args.get_graph = args.extract
 
     if args.get_bb_ids:
         addresses = [int(a, 16) for a in args.get_bb_ids]
         bb_ids = vo.get_bb_ids(addresses)
 
         for i in range(len(args.get_bb_ids)):
-            print(f"Basic block ID of {hex(addresses[i])}: {bb_ids[i]}")
-        exit(0)
+            Utils.log('success', f'Basic block ID of {hex(addresses[i])}: {bb_ids[i]}')
 
     if args.get_graph:
         addresses = [int(a, 16) for a in args.get_graph]

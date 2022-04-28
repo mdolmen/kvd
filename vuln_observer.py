@@ -57,7 +57,7 @@ class Utils():
 
 
 class VulnObserver():
-    def __init__(self, target):
+    def __init__(self, target, is_dyld=False):
         colorama_init()
 
         self.target = target
@@ -65,10 +65,13 @@ class VulnObserver():
         self.fct_candidates = dict()
         self.pc = 'pc'
         self.sp = 'sp'
-        self.options = self.init_options(self.target)
+        self.options = self.init_options(self.target, is_dyld)
         self.r = r2pipe.open(self.target, self.options)
 
         # TODO: fine tune the analysis depending of the needs for faster load
+
+        Utils.log('debug', f'target = {self.target}')
+        Utils.log('debug', f'options = {self.options}')
 
         # TEST: to speed up testing, r2 project feature works \o/
         if 'wifid_14.1' in self.target:
@@ -78,6 +81,8 @@ class VulnObserver():
             Utils.log('success', 'Analyzing the binary...')
             self.r.cmd('aaa')
 
+        # TODO: once analysis done, automatically save the project
+
         # Init ESIL
         self.r.cmd('aei')
         self.r.cmd('aeim')
@@ -86,11 +91,15 @@ class VulnObserver():
         #self.curr_fct
         #self.curr_graph
 
-    def init_options(self, target):
+    def init_options(self, target, is_dyld):
         """
         Use rabin2 to get information about the binary to determine what we have to deal with.
         """
         options = []
+
+        if is_dyld:
+            os.environ["R_DYLDCACHE_FILTER"] = target
+            return ['-e', 'bin.usextr=false']
 
         bin_info = subprocess.check_output(['rabin2', '-Ij', target])
         bin_info = json.loads(bin_info)
@@ -104,9 +113,6 @@ class VulnObserver():
 
         if bin_info['bintype'] == 'mach0':
             pass
-
-        # TODO: check if dyldcache
-
         elif bin_info['bintype'] == 'elf':
             if bin_info['relro'] == 'full':
                 options += ['-e', 'bin.cache=true']
@@ -547,13 +553,21 @@ if __name__ == '__main__':
                         help='Check the correctness of a description file')
     parser.add_argument('-t', '--target', required=True,
                         help='Target file in which to search for the given vuln')
+    parser.add_argument('-d', '--dyld',
+                        help='The dyldcache in which to look for the target')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
     INFO = (args.verbose > 0)
     DEBUG = (args.verbose > 1)
 
-    vo = VulnObserver(args.target)
+    if args.dyld:
+        target = args.dyld
+    else:
+        target = args.target
+    is_dyld = (args.dyld != 0)
+
+    vo = VulnObserver(target, is_dyld)
 
     if args.extract:
         # TODO: get_bb_ids

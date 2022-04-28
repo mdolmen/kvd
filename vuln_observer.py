@@ -88,9 +88,6 @@ class VulnObserver():
         self.r.cmd('aeim')
         self.r.cmd('e asm.esil=true')
 
-        #self.curr_fct
-        #self.curr_graph
-
     def init_options(self, target, is_dyld):
         """
         Use rabin2 to get information about the binary to determine what we have to deal with.
@@ -572,6 +569,7 @@ if __name__ == '__main__':
     if args.extract:
         # TODO: get_bb_ids
         # TODO: get_graph
+        # TODO: get_graph_path between 2 bb_id
         pass
 
     if args.get_bb_ids:
@@ -585,10 +583,9 @@ if __name__ == '__main__':
 
     if args.get_graph:
         addresses = [int(a, 16) for a in args.get_graph]
-        graphs = []
 
         for addr in addresses:
-            graphs.append(vo.get_graph(addr), save=True)
+            vo.get_graph(addr, save=True)
 
     if args.check:
         self.desc = json.load(desc_file)

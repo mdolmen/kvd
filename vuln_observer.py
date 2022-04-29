@@ -370,18 +370,18 @@ class VulnObserver():
         for i, fct in enumerate(self.fct_candidates[att['fct_id']]):
             graph_match = True
 
-            # Check that this function BB graph matches the reference one
-            for filepath in att['bb_graph_filepaths']:
-                graph_ref = self.get_saved_graph(filepath)
-                graph_fct = self.get_graph(fct)
-                graph_match = self.cmp_graph(graph_ref, graph_fct)
-                if graph_match:
-                    break
+            ## Check that this function BB graph matches the reference one
+            #for filepath in att['bb_graph_filepaths']:
+            #    graph_ref = self.get_saved_graph(filepath)
+            #    graph_fct = self.get_graph(fct)
+            #    graph_match = self.cmp_graph(graph_ref, graph_fct)
+            #    if graph_match:
+            #        break
 
-            if not graph_match:
-                Utils.log('fail', f'Difference in basic block graphs for function holding {hex(fct)}')
-                check = False
-                break
+            #if not graph_match:
+            #    Utils.log('fail', f'Difference in basic block graphs for function holding {hex(fct)}')
+            #    check = False
+            #    break
 
             for cmd in att['commands']:
                 if cmd['cmd'] == 'get_memreads':

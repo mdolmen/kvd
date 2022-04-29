@@ -1,132 +1,99 @@
 # Vuln Observer
 
-## What?
+## Info extraction
 
-A tool to test the presence of a known vuln in a binary.
-
-Oriented towards macOS and iOS (parsing of IPSW content).
-
-The vuln properties and indicators should be described in a JSON file.
-
-Once the tool done, users should be able to focus only on the vulns description in a relatively
-high-level view.
-
-## Tech
-
-* r2 : everything related to handling executable (parsing, analyzing, emulation, etc.)
-* python
-
-## Requirements
-
-* Parsing an archive (zip) content
-* Basic file diffing
-* Get basic block graph
-    * Implement the Machoc algo?
-
-## Vuln description
-
-cf. vuln.json
-
-### Info extraction
-
-First we need to extract some informations from our vulnerable targe: function, range we want to
+First we need to extract some informations from our vulnerable target: function, range we want to
 emulate, strings to identify the function, etc.
 
-For most it's straightforward once the vuln is identified. Other are more complex, like the range
+It's mostly straightforward once the vuln is identified. Some attributes more complex, like the range
 for which we want to emulate code. Obviously we can't use addresses. My approach for this is to
 first generate the basic block graph of the function then use basic block ID to identify the range.
 
-This should be automated by a script which takes 2 addresses as input and gives the graph path
-between the 2 basic blocks containing those addresses.
-Cf. EMULATION attribute
+## Vuln description
+
+For a complete example see `tests/wifid.json`.
+
+### Metadata
+
+Information describing the vuln and its target. A good place to store research related resources
+(e.g. path to IDB).
+
+### Revisions
+
+The idea is that the **same** vuln may have slight variations (an additional baisc block, a few missing
+instructions for optimization which impacts the emulation logic done so far, etc.) depending on the
+target's version, maybe because of compiler options (release vs debug build) or the OS. So instead
+of having a single file for each one, we can put them all in a single description.
+
+Maybe it will be clearer without, we'll see how this turns out in practice.
 
 ### Attributes
 
-An attribute is defined by a TYPE. Each TYPE defines its own set of objects.
+The analysis is done in this order, from simpler to more complex. An attribute can be seen as a
+constraint and each step requires that the previous constraint be satisfied.
 
-**FILE**
+An attribute is defined by a `TYPE`. Each `TYPE` defines its own set of objects.
 
-{"str": "", "hash": ""}
-* *name*: required
-* *hash*: optional
-
-**subtypes(?)**
-
-* `filenames`   : A list of files that should be present in the archive.
-    * {"absolute": true/false, "name": "filename"}
-* `hash`        : A list file hashes that should be present.
-* `absolutes`   : A list of exact paths that should be present in the archive.
-* `dyld`        : A list of .dylib that should be present in the sharedcache.
+All the fields are required but their content is optional (can be empty).
 
 **FUNCTION**
 
-Characteristics allowing the identification of a function.
+Characteristics to use to identify a function.
 
-* `identifier` : A list of elements to identify the function from the binary.
-    **subtypes(?)**
-    * `symbol`     : Function name.
-    * `strings`    : A list of strings that should be present in the function.
-    * `bb_graph`   : An object describing the basic block graph of the function.
-        * {"hash": "", "path": "local_file_containing_graph"}
-        * Compute graph edit distance?
+* `type`        : FUNCTION
+* `fct_id`      : Arbitrary id. Used by `EMULATION`.
+* `identifier`  : A list of elements to identify the function from the binary. All have to match.
+    * `type`  : "symbol", "string", "graph" (not implemented yet)
+    * `name`  : The content of the symbol/string (TODO: rename content)
+
+Can be use just to ensure its presence or to apply EMULATION on it.
 
 **EMULATION**
 
 Portion of the code to analyze dynamically. Emulation is done with radare2's ESIL feature. It
 abstracts the code with an Intermediary Language then evaluates this IL.
 
-Run first on the vulnerable version to get a reference and to decide which attributes to look for.
+* `type`                : EMULATION
+* `fct_id`              : The FUNCTION ID to apply the emulation logic on.
+* `bb_graph_filepaths`  : The path to the .gml file containing the graph of the function. There can
+                          be multiple files listed here.
+* `bb_graph_path`       : The graph simple path between two basic block ID. This identify the
+                          start/end range for the emulation.
+* `context`             : To setup the memory state or register values (not implemented yet).
+* `commands`            : A list of action (`cmd`) to perform on the range given by `bb_graph_path`.
 
-**subtypes(?)**
-divide thme between mandatory/optional?
+**EMULATION - cmd**
 
-* `start`         : Basic block ID.
-    * Limit the scope of the analysis to start-end.
-    * The actual emulation can cover all the blocks of the range or a subset of instructions
-    identified by "keypoints".
-    * {type: bb_id, id: 0}
-    //* {bb_id: 0, keypoint: {name: none/first/last/branch/memread/memwrite/etc., position: 0}}
-* `end`           : Basic block ID.
-    * {type: bb_id, id: 5}
-* `keypoint_start`
-    * {type: branch, position: 3} // start at the 3rd call/jmp/branch
-    * types: branch, memread, memwrite, offset
-* `keypoint_end`
-    * {type: branch, position: 3} // start at the 3rd call/jmp/branch
-    * types: branch, memread, memwrite, offset
-* `commands`      : ESIL commands or abstractions of ESIL command
-    * values referenced in "object" (function or basic block)
-    * number of PC changes (branch, jmp, call)
-    * memreads and memwrites at specific offsets
-    * stack content
-    * nb values pushed on the stack between start and now
-* `context`       : Initial context to setup emulation with.
-    * memory
-    * register
-    * stack
-    * {}
-* `register`      : Expected value in registers
-    * {}
-* `stack`
-    * {type: value/pointer, value: 0x00/"bytes"}
+* `cmd` : The name of the command to execute.
+    * `get_memreads` : Get the list of addresses at which memory is read.
+    * `exec_until`   : Emulate (i.e. evaluate the ESIL expression) until `keypoint`.
+* `keypoint` : An object defining where to stop the emulation.
+    * Not used by `get_memreads`.
+    * `type`     : The keypoint name (only "branch" for now).
+    * `expected` : The expected number of occurence of that keypoint in the range analyzed.
+    * `position` : The index at which to stop/act.
+* `results` : An object describing the expected state resulting from the emulation.
+    * Can be empty.
+    * `type`    : "stack" or "callback" (TODO: "reg" and "mem")
 
-## Analysis
+**EMULATION - cmd: results**
 
-Done with `r2` because faster and more appropriate for this kind of use case than `IDA`
-To be confirmed whne handling a single dyldcache module.
+* `type` == "stack" (handling of regs is the same, yet to be implemented though)
+    * Check the state of the stack.
+    * `offset`  : An offset from the stack pointer.
+    * `deref`   : Boolean to indicate wether or not we are interested in the stack value or what it
+                  points to.
+    * `value`   : The expected value.
+    * `operand` : A string representing the operand to apply (e.g. "==").
+* `callback` : An object to describe an action to apply on one of the elements returned by the
+               execution of `cmd`.
+    * `elem_id` : The index of the element on which to apply `action`.
+    * `action`  : "write" (TODO: implement more)
+    * `value`   : An argument for `action`.
 
-### MACHOC
+## Tests
 
-`afb` to get a list of basic blocks
-
-## Handle dyldcache
-
-* r2   : https://github.com/radareorg/radare2/pull/10094
-* idat : https://hex-rays.com/products/ida/news/7_2/the_mac_rundown/
-
-## TESTS
-
-Test target: `ls`
+### Experiments with ls
 
 Function: `sub_D910`, `sub_CD30` (more complex)
 Easy for graph generation test: sub_7710 (statx)
@@ -168,8 +135,10 @@ would be signaled by the script that there is something we need to check out.
 
 2 blocks to analyze:
 1. ldr x27, string
+    * start @ = 0x1000F5380; bb id = 49
     * get memory read access, should be only one, set it to "something"
 2. the one containing the vuln
+    * start @ = 0x1000F53A8; bb id = 51
     * get stack value
     * emulate until call to obj_msgSend
     * check stack value == stack_value_before - 16 (2 args pushed)
@@ -185,12 +154,21 @@ Basic block containing the vuln
 (14.7.1) : 16,sp,-=,x20,0x10,sp,-,=[8]
 
 
-### IOMobileFrameBuffer
+### (iOS) IOMobileFrameBuffer
+
+TODO: handle kernelcache
 
 https://saaramar.github.io/IOMobileFrameBuffer_LPE_POC/
 
-## TODO
+## Notes
 
-* Check number of function calls between two points
-* A set of high-level commands, translated in the code to ESIL commands
-* Get an ESIL string to experiment with
+### Handle dyldcache
+
+* r2   : https://github.com/radareorg/radare2/pull/10094
+    * `R_DYLDCACHE_FILTER=whatever.dylib r2 -e bin.usextr=false <dyldcache>`
+* idat : https://hex-rays.com/products/ida/news/7_2/the_mac_rundown/
+### MACHOC
+
+TODO: use a similar algorithm to look for a function
+
+https://github.com/ANSSI-FR/polichombr/blob/dev/docs/MACHOC_HASH.md

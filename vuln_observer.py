@@ -261,7 +261,6 @@ class VulnObserver():
         else:
             tmp = NamedTemporaryFile()
             gname = tmp.name
-            Utils.log('debug', gname)
 
         if dest:
             gname = dest
@@ -274,7 +273,6 @@ class VulnObserver():
         # Create GML graph from file
         g = Graph()
         graph = g.Read_GML(gname)
-        Utils.log('debug', graph)
 
         if tmp:
             tmp.close()
@@ -348,8 +346,6 @@ class VulnObserver():
                 # TODO: parse all function looking for a specific graph
                 pass
 
-            Utils.log('debug', candidates)
-
             if len(candidates) == 0:
                 found = False
                 Utils.log('fail', f'FUNCTION: \"{id["type"]}\" \"{id["name"]}\": no function matching all the constraints')
@@ -400,16 +396,16 @@ class VulnObserver():
         bbs = self.get_bbs(addr)
 
         for id in graph_path:
-            Utils.log('debug', f'addr = {bbs[id]["addr"]}')
+            Utils.log('debug', f'addr = {hex(bbs[id]["addr"])}')
             memreads += self.get_memreads(bbs[id]['addr'])
 
         return self.handle_cmd_results(obj_cmd['results'], memreads)
 
     def handle_cmd_exec_until(self, obj_cmd, graph_path, addr):
         bbs = self.get_bbs(addr)
-        kp_type = obj_cmd['keypoints']['type']
-        kp_expected = obj_cmd['keypoints']['expected']
-        kp_stop_at = obj_cmd['keypoints']['position']
+        kp_type = obj_cmd['keypoint']['type']
+        kp_expected = obj_cmd['keypoint']['expected']
+        kp_stop_at = obj_cmd['keypoint']['position']
 
         estr = ""
         for id in graph_path:
@@ -428,7 +424,7 @@ class VulnObserver():
             Utils.log('error',
                       f'Number of "{kp_type}" ({nb_keypoints}) differs from what was expected ({kp_expected})!')
 
-        Utils.log('debug', f'start = {bbs[graph_path[0]]["addr"]}, kp = {keypoint}, stop_at = {kp_stop_at}')
+        Utils.log('debug', f'start = {hex(bbs[graph_path[0]]["addr"])}, kp = "{keypoint}", stop_at = {kp_stop_at}')
         regs = self.esil_emulate(bbs[graph_path[0]]['addr'], keypoint, kp_stop_at)
 
         return self.handle_cmd_results(obj_cmd['results'], regs)
@@ -452,13 +448,13 @@ class VulnObserver():
                         length = len(expected)
                         data = self.read_at(addr, length)
                         op = result['operand']
-                        Utils.log('debug', f'addr = {hex(addr)}, operand = {op}, data = {data}')
+                        Utils.log('debug', f'addr = {hex(addr)}, operand = "{op}", data = "{data}"')
                         check = eval(f'{data} {op} {expected}')
                     else:
                         expected = bytes.fromhex(result['value'])
                         data = sp + result['offset']
                         operand = result["operand"]
-                        Utils.log('debug', f'data = {data}, operand = {operand}, expected = {expected}')
+                        Utils.log('debug', f'data = "{data}", operand = "{operand}", expected = "{expected}"')
                         check = eval(f'{data} {operand} {expected}')
 
                 elif result['type'] == 'mem':

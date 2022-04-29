@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "codename": "wifid_test",
+        "codename": "wifid_format_string",
         "OS": "iOS",
         "versions": [""],
         "patched_in": "version",
@@ -46,7 +46,7 @@
                     "commands": [
                         {
                             "cmd": "exec_until",
-                            "keypoints": {"type": "branch", "expected": 2, "position": 1},
+                            "keypoint": {"type": "branch", "expected": 2, "position": 1},
                             "results": [
                             ]
                         }
@@ -61,7 +61,7 @@
                     "commands": [
                         {
                             "cmd": "exec_until",
-                            "keypoints": {"type": "branch", "expected": 4, "position": 0},
+                            "keypoint": {"type": "branch", "expected": 4, "position": 0},
                             "results": [
                                 {"type": "stack", "offset": 0, "deref": true, "value": "0000000000000000", "operand": "!="},
                                 {"type": "stack", "offset": 8, "deref": true, "value": "deadbeef", "operand": "=="}

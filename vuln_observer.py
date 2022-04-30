@@ -73,15 +73,21 @@ class VulnObserver():
         Utils.log('debug', f'target = {self.target}')
         Utils.log('debug', f'options = {self.options}')
 
-        # TEST: to speed up testing, r2 project feature works \o/
-        if 'wifid_14.1' in self.target:
-            Utils.log('success', 'Opening project...')
-            self.r.cmd('Po wifid_14_1')
+        # r2 project name have some constraints
+        self.prjdir = os.path.expanduser("~/.local/share/radare2/projects")
+        self.prjname = self.target.lower()
+        self.prjname = self.prjname.split('/')[-1].replace('.', '_').replace(',', '_')
+
+        if os.path.exists(os.path.join(self.prjdir, self.prjname)):
+            Utils.log('success', f'Opening project {self.prjname}...')
+            self.r.cmd(f'Po {self.prjname}')
         else:
             Utils.log('success', 'Analyzing the binary...')
             self.r.cmd('aaa')
 
-        # TODO: once analysis done, automatically save the project
+        # Save the analysis in a project ()
+        self.r.cmd('e prj.vc.message = "Init"')
+        self.r.cmd(f'Ps {self.prjname}')
 
         # Init ESIL
         self.r.cmd('aei')

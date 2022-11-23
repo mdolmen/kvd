@@ -20,7 +20,7 @@ following command extract basic block ID and generate the basic block graph (GML
 functions containing the addresses passed on the command line:
 
 ```bash
-python vuln_observer.py -e 0x1000F5380 0x1000F53A8 -t tests/wifid_14.1
+python kvd.py -e 0x1000F5380 0x1000F53A8 -t tests/wifid_14.1
 ```
 
 ### Search for a vuln
@@ -29,7 +29,7 @@ python vuln_observer.py -e 0x1000F5380 0x1000F53A8 -t tests/wifid_14.1
 as a template. Attributes available for the crafting of a descrition are listed in `DOC.md`.
 
 ```bash
-python vuln_observer.py -s tests/wifid.json -t tests/wifid_14.1 -vv
+python kvd.py -s tests/wifid.json -t tests/wifid_14.1 -vv
 ```
 
 ### Run unit tests

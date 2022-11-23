@@ -1,2 +1,2 @@
 test:
-	python -m unittest tests/test_vuln_observer.py -b -v
+	python -m unittest tests/test_kvd.py -b -v
